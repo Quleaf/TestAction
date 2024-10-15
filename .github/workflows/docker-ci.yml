@@ -23,7 +23,7 @@ jobs:
         run: |
           pwd
           ls -R
-
+          ls -R /home/runner/work/TestAction/TestAction
 
       - name: Build and push
         uses: docker/build-push-action@v6
