@@ -22,12 +22,16 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
+      - name: Debug QEMU and Buildx
+        run: |
+          docker buildx ls
+          mount | grep binfmt_misc || sudo mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
+
       - name: List project directory for debugging
         run: |
           pwd
           ls -R
-          ls -R /home/runner/work/TestAction/TestAction
-
+     
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
