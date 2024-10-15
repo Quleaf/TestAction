@@ -18,12 +18,15 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: List project directory for debugging
+        run: ls -R
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/Dockerfile  # 指定 Dockerfile 的路径
+          file: docker/Dockerfile 
           platforms: linux/amd64,linux/arm64
           push: true
           tags: klinus/app:latest
