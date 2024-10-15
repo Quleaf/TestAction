@@ -16,7 +16,12 @@ jobs:
         id: changed_files
         run: |
           files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} '*.dockerfile')
-          echo "files=$files" >> $GITHUB_ENV
+          if [ -z "$files" ]; then
+            echo "No dockerfile has been modified"
+          else
+            echo "files=$files" >> $GITHUB_ENV
+          fi
+
 
       - name: Check single dockerfile modification
         if: contains(env.files, '\n')
