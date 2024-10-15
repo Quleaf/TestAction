@@ -20,8 +20,7 @@ jobs:
           if [ -z "$files" ]; then
             echo "No dockerfile has been modified"
           else
-            echo "Files changed: $files"
-            
+            echo "Files changed: $files"            
 
       - name: Debug output
         run: |
