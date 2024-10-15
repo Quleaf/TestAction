@@ -5,7 +5,7 @@ on:
 
 jobs:
   docker:
-    runs-on: self-hosted
+    runs-on: work
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
