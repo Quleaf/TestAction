@@ -45,6 +45,13 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Login to quay Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ vars.QUAYIO_USERNAME }}
+          password: ${{ secrets.QUAYIO_TOKEN }}
 
       - name: Parse file path
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
@@ -98,6 +105,8 @@ jobs:
         with:
           context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}
           file: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}
-          tags: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+          tags: |
+            klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+            quay.io/klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
           platforms: ${{ steps.parse_path.outputs.platform }}
           push: true
