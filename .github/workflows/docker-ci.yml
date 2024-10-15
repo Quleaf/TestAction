@@ -16,11 +16,12 @@ jobs:
         id: changed_files
         run: |
           files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} '*.dockerfile')
-          echo "files=$files" >> $GITHUB_OUTPUT
           if [ -z "$files" ]; then
             echo "No dockerfile has been modified"
           else
-            echo "Files changed: $files"            
+            echo "Files changed: $files"
+            echo "files=$files" >> $GITHUB_OUTPUT
+          fi
 
       - name: Debug output
         run: |
