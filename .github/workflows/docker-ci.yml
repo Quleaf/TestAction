@@ -20,7 +20,8 @@ jobs:
           echo "files=$files" >> $GITHUB_OUTPUT
 
       - name: Debug output
-        run: echo "Files from output: ${{ steps.changed_files.outputs.files }}"
+        run: |
+          echo "Files from output: ${{ steps.changed_files.outputs.files }}"
 
       - name: Check single dockerfile modification
         if: contains(steps.changed_files.outputs.files, '\n')
