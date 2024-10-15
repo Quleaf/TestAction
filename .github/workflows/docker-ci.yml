@@ -1,4 +1,4 @@
-name: ci 
+name: ci
 
 on:
   push:
@@ -9,34 +9,80 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      
+        with:
+          fetch-depth: 0  # Ensure full git history for accurate diff
+
+      - name: Filter files
+        id: filter
+        uses: dorny/paths-filter@v1
+        with:
+          filters: |
+            dockerfiles:
+              - '**/*.dockerfile'
+
+      - name: Non-dockerfile files have been modified
+        if: steps.filter.outputs.dockerfiles == 'false'
+        run: echo 'non-dockerfile have been modified'
+
       - name: Set up QEMU
+        if: steps.filter.outputs.dockerfiles == 'true'
         uses: docker/setup-qemu-action@v3
-      
+
       - name: Set up Docker Buildx
+        if: steps.filter.outputs.dockerfiles == 'true'
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Login to Docker Hub
+        if: steps.filter.outputs.dockerfiles == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
+
       - name: Debug QEMU and Buildx
+        if: steps.filter.outputs.dockerfiles == 'true'
         run: |
           docker buildx ls
           mount | grep binfmt_misc || sudo mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
 
       - name: List project directory for debugging
+        if: steps.filter.outputs.dockerfiles == 'true'
         run: |
           pwd
           ls -R
-     
-      - name: Build and push
+
+      - name: Build and push images
+        if: steps.filter.outputs.dockerfiles == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: ${{ github.workspace }}
-          file: docker/Dockerfile 
-          platforms: linux/amd64,linux/arm64
+          context: ./
+          file: ${{ github.workspace }}/path/to/Dockerfile
+          tags: klinus/${{ matrix.tag }}:${{ matrix.platform }}-${{ steps.date.outputs.date }}
+          platforms: ${{ matrix.platform }}
           push: true
-          tags: klinus/app:latest
+
+      - name: Build matrix setup
+        if: steps.filter.outputs.dockerfiles == 'true'
+        id: matrix
+        run: |
+          changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- '*.dockerfile')
+          for file in $changed_files; do
+            echo "Processing $file"
+            dir=$(dirname "$file")
+            base=$(basename "$file")
+            dockerfile_name="${base%.*}"
+            if [[ "$dir" == *"x86"* ]]; then
+              platform="linux/amd64"
+            elif [[ "$dir" == *"arm"* ]]; then
+              platform="linux/arm64"
+            else
+              continue
+            fi
+            echo "::set-output name=tag::$dockerfile_name"
+            echo "::set-output name=platform::$platform"
+          done
+
+      - name: Set current date
+        if: steps.filter.outputs.dockerfiles == 'true'
+        id: date
+        run: echo "::set-output name=date::$(date +'%m-%d')"
