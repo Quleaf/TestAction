@@ -10,79 +10,68 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Ensure full git history for accurate diff
+          fetch-depth: 2  # Ensure sufficient git history for comparison
 
-      - name: Filter files
-        id: filter
-        uses: dorny/paths-filter@v1
-        with:
-          filters: |
-            dockerfiles:
-              - '**/*.dockerfile'
+      - name: Get changed files
+        id: changed_files
+        run: |
+          files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} '*.dockerfile')
+          echo "::set-output name=files::$files"
 
-      - name: Non-dockerfile files have been modified
-        if: steps.filter.outputs.dockerfiles == 'false'
-        run: echo 'non-dockerfile have been modified'
+      - name: Check single dockerfile modification
+        if: contains(steps.changed_files.outputs.files, '\n')
+        run: echo "We skipped compilation once multi-dockerfile have been modified"
 
       - name: Set up QEMU
-        if: steps.filter.outputs.dockerfiles == 'true'
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: steps.filter.outputs.dockerfiles == 'true'
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: steps.filter.outputs.dockerfiles == 'true'
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/login-action@v3
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Debug QEMU and Buildx
-        if: steps.filter.outputs.dockerfiles == 'true'
-        run: |
-          docker buildx ls
-          mount | grep binfmt_misc || sudo mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
-
-      - name: List project directory for debugging
-        if: steps.filter.outputs.dockerfiles == 'true'
-        run: |
-          pwd
-          ls -R
-
-      - name: Build and push images
-        if: steps.filter.outputs.dockerfiles == 'true'
+      - name: Build and push single image
+        if: "!contains(steps.changed_files.outputs.files, '\n') && contains(steps.changed_files.outputs.files, '.dockerfile')"
         uses: docker/build-push-action@v6
         with:
-          context: ./
-          file: ${{ github.workspace }}/path/to/Dockerfile
-          tags: klinus/${{ matrix.tag }}:${{ matrix.platform }}-${{ steps.date.outputs.date }}
-          platforms: ${{ matrix.platform }}
+          context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}
+          file: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}
+          tags: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+          platforms: ${{ steps.parse_path.outputs.platform }}
           push: true
 
-      - name: Build matrix setup
-        if: steps.filter.outputs.dockerfiles == 'true'
-        id: matrix
+      - name: Parse file path
+        if: "!contains(steps.changed_files.outputs.files, '\n') && contains(steps.changed_files.outputs.files, '.dockerfile')"
+        id: parse_path
         run: |
-          changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- '*.dockerfile')
-          for file in $changed_files; do
-            echo "Processing $file"
-            dir=$(dirname "$file")
-            base=$(basename "$file")
-            dockerfile_name="${base%.*}"
-            if [[ "$dir" == *"x86"* ]]; then
-              platform="linux/amd64"
-            elif [[ "$dir" == *"arm"* ]]; then
-              platform="linux/arm64"
-            else
-              continue
-            fi
-            echo "::set-output name=tag::$dockerfile_name"
-            echo "::set-output name=platform::$platform"
-          done
+          file="${{ steps.changed_files.outputs.files }}"
+          dir=$(dirname "$file")
+          base=$(basename "$file")
+          dockerfile_name="${base%.*}"
+          # Determine platform
+          if [[ "$dir" == *"x86"* ]]; then
+            platform="linux/amd64"
+            platform_tag="x86"
+          elif [[ "$dir" == *"arm"* ]]; then
+            platform="linux/arm64"
+            platform_tag="arm"
+          else
+            echo "Unknown directory for $file. Exiting."
+            exit 1
+          fi
+          echo "::set-output name=dockerfile_name::$dockerfile_name"
+          echo "::set-output name=platform::$platform"
+          echo "::set-output name=platform_tag::$platform_tag"
+          echo "::set-output name=directory::$dir"
 
       - name: Set current date
-        if: steps.filter.outputs.dockerfiles == 'true'
+        if: "!contains(steps.changed_files.outputs.files, '\n') && contains(steps.changed_files.outputs.files, '.dockerfile')"
         id: date
         run: echo "::set-output name=date::$(date +'%m-%d')"
