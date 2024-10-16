@@ -110,3 +110,4 @@ jobs:
             quay.io/klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
           platforms: ${{ steps.parse_path.outputs.platform }}
           push: true
+          provenance: false
