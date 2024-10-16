@@ -98,6 +98,18 @@ jobs:
           echo "File: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}"
           echo "Tag: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}"
           echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
+      
+      - name: Scan the Docker image
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format template --template "@trivy-reports.tpl" --output "${{ github.workspace }}/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt" klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+      
+      - name: Upload Trivy scan report
+        uses: actions/upload-artifact@v3
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        with:
+            name: trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}
+            path: ${{ github.workspace }}/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt
 
       - name: Build and push single image
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
