@@ -10,7 +10,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 2  # Ensure engough history is available
+          fetch-depth: 2  # 确保有足够的历史记录
 
       - name: Get changed files
         id: changed_files
@@ -39,20 +39,6 @@ jobs:
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
-      - name: Login to quay Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: quay.io
-          username: ${{ vars.QUAYIO_USERNAME }}
-          password: ${{ secrets.QUAYIO_TOKEN }}
-
       - name: Parse file path
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         id: parse_path
@@ -65,7 +51,7 @@ jobs:
           echo "Base: $base"
           dockerfile_name="${base%.*}"
           echo "Dockerfile name: $dockerfile_name"
-          # Determine platform
+          # 确定平台
           if [[ "$dir" == *"x86"* ]]; then
             platform="linux/amd64"
             platform_tag="x86"
@@ -91,45 +77,61 @@ jobs:
           echo "Date tag: $date_tag"
           echo "date=$date_tag" >> $GITHUB_OUTPUT
 
-      - name: Debug variables before build
-        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
-        run: |
-          echo "Context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}"
-          echo "File: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}"
-          echo "Tag: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}"
-          echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
-
-      - name: Build and push single image
+      - name: Build Docker image
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}
           file: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}
-          tags: | 
-            klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
-            quay.io/klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
           platforms: ${{ steps.parse_path.outputs.platform }}
-          push: true
-          provenance: false
-          cache-from: type=registry,ref=klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:latest
-          cache-to: type=registry,ref=klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:buildcache,mode=max
+          tags: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+          push: false  # 先不推送
+          load: true   # 将镜像加载到本地 Docker 守护进程
 
       - name: Create Trivy report directory
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         run: mkdir -p ./trivy-reports
-  
+
       - name: Scan the Docker image with Trivy
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}'
+          image-ref: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
           format: 'table'
           output: './trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt'
-        
+
       - name: Upload Trivy scan report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         with:
-            name: trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}
-            path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt
-  
+          name: trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}
+          path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt
+
+      # 在推送之前等待手动审批
+      - name: Await manual approval
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        run: echo "Waiting for approval..."
+        environment:
+          name: push  # 需要手动审批的环境名称
+
+      - name: Login to Docker Hub
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to quay Container Registry
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ vars.QUAYIO_USERNAME }}
+          password: ${{ secrets.QUAYIO_TOKEN }}
+
+      - name: Push Docker image
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        run: |
+          docker push klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+          docker tag klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }} quay.io/klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+          docker push quay.io/klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
