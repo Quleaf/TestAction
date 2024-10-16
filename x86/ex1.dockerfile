@@ -3,7 +3,7 @@
 From ubuntu:20.04
 
 # Install curl package
-RUN apk add --no-cache curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Define the command that will run when the container starts
 CMD ["echo", "Hello, World9.7!"]
