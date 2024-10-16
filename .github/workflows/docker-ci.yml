@@ -98,7 +98,10 @@ jobs:
           echo "File: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}"
           echo "Tag: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}"
           echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
-      
+      - name: Create Trivy report directory
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        run: mkdir -p ./trivy-reports
+
       - name: Scan the Docker image with Trivy
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: aquasecurity/trivy-action@master
