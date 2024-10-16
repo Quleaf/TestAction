@@ -111,3 +111,5 @@ jobs:
           platforms: ${{ steps.parse_path.outputs.platform }}
           push: true
           provenance: false
+          cache-from: type=registry,ref=klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:latest
+          cache-to: type=registry,ref=klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:buildcache,mode=max
