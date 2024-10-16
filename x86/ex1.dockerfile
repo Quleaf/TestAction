@@ -1,11 +1,8 @@
 # Use the official Alpine Linux as the base image
-#FROM alpine:latest
-FROM ubuntu:20.04
+FROM alpine:latest
 
 # Install curl package
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl
 
 # Define the command that will run when the container starts
-CMD ["echo", "Hello, World10.4!"]
+CMD ["echo", "Hello, World10.5!"]
