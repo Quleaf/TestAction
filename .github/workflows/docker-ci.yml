@@ -102,6 +102,7 @@ jobs:
       - name: Scan the Docker image
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         run: |
+          mkdir -p ${{ github.workspace }}/trivy-reports
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format template --template "@trivy-reports.tpl" --output "${{ github.workspace }}/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt" klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
       
       - name: Upload Trivy scan report
