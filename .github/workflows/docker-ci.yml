@@ -105,8 +105,7 @@ jobs:
         with:
           context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}
           file: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}
-          tags: |
-            ${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+          tags: | 
             klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
             quay.io/klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
           platforms: ${{ steps.parse_path.outputs.platform }}
@@ -123,7 +122,7 @@ jobs:
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}'
+          image-ref: 'klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}'
           format: 'table'
           output: './trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt'
         
