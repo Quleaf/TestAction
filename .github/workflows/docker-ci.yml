@@ -4,18 +4,13 @@ on:
   push:
 
 jobs:
-  build_and_scan:
+  build-and-scan:
     runs-on: work
-    outputs:
-      dockerfile_name: ${{ steps.parse_path.outputs.dockerfile_name }}
-      platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
-      date: ${{ steps.date.outputs.date }}
-      image: localhost:5000/${{ steps.parse_path.outputs.dockerfile_name }}:${{ steps.parse_path.outputs.platform_tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 2
+          fetch-depth: 2  # Ensure enough history is available
 
       - name: Get changed files
         id: changed_files
@@ -27,28 +22,43 @@ jobs:
             echo "Files changed: $files"
             echo "files=$files" >> $GITHUB_OUTPUT
           fi
-      - name: Setup QEMU
+
+      - name: Debug output
+        run: |
+          echo "Files from output: ${{ steps.changed_files.outputs.files }}"
+
+      - name: Check single dockerfile modification
+        if: contains(steps.changed_files.outputs.files, '\n')
+        run: echo "We skipped compilation since multiple Dockerfiles have been modified"
+
+      - name: Set up QEMU
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/setup-qemu-action@v3
 
-      - name: Setup Docker Buildx
+      - name: Set up Docker Buildx
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/setup-buildx-action@v3
-        with: 
-          driver-opts: network=host
 
-      # - name: Login to Local Docker Registry
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: localhost:5000
-      #     username: ${{ secrets.LOCAL_REGISTRY_USERNAME }}
-      #     password: ${{ secrets.LOCAL_REGISTRY_PASSWORD }}
+      - name: Login to Docker Hub
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Parse file path and determine platform
+      - name: Parse file path
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         id: parse_path
         run: |
           file="${{ steps.changed_files.outputs.files }}"
+          echo "File: $file"
           dir=$(dirname "$file")
+          echo "Directory: $dir"
           base=$(basename "$file")
+          echo "Base: $base"
           dockerfile_name="${base%.*}"
+          echo "Dockerfile name: $dockerfile_name"
+          # Determine platform
           if [[ "$dir" == *"x86"* ]]; then
             platform="linux/amd64"
             platform_tag="x86"
@@ -59,70 +69,72 @@ jobs:
             echo "Unknown directory for $file. Exiting."
             exit 1
           fi
-          echo "::set-output name=dockerfile_name::$dockerfile_name"
-          echo "::set-output name=platform_tag::$platform_tag"
-          echo "::set-output name=platform::$platform"
-          echo "::set-output name=date::$(date +'%m-%d')"
+          echo "Platform: $platform"
+          echo "Platform tag: $platform_tag"
+          echo "dockerfile_name=$dockerfile_name" >> $GITHUB_OUTPUT
+          echo "platform=$platform" >> $GITHUB_OUTPUT
+          echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
+          echo "directory=$dir" >> $GITHUB_OUTPUT
 
-      - name: Build and push image to local registry
+      - name: Set current date
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        id: date
+        run: |
+          date_tag=$(date +'%m-%d')
+          echo "Date tag: $date_tag"
+          echo "date=$date_tag" >> $GITHUB_OUTPUT
+
+      - name: Debug variables before build
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        run: |
+          echo "Context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}"
+          echo "File: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}"
+          echo "Tag: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}"
+          echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
+
+      - name: Build Docker image locally
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}
           file: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}
-          tags: localhost:5000/${{ steps.parse_path.outputs.dockerfile_name }}:${{ steps.parse_path.outputs.platform_tag }}
-          push: true
+          tags: | 
+            klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
+          platforms: ${{ steps.parse_path.outputs.platform }}
+          push: false
+          provenance: false
 
+      - name: Create Trivy report directory
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
+        run: mkdir -p ./trivy-reports
+  
       - name: Scan the Docker image with Trivy
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: localhost:5000/${{ steps.parse_path.outputs.dockerfile_name }}:${{ steps.parse_path.outputs.platform_tag }}
+          image-ref: 'klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}'
           format: 'table'
           output: './trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt'
 
       - name: Upload Trivy scan report
         uses: actions/upload-artifact@v3
+        if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         with:
-          name: trivy-report
-          path: ./trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt
+            name: trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}
+            path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt
 
-  push_to_public:
-    needs: build_and_scan
+  approve-and-deploy:
+    needs: build-and-scan
     runs-on: work
     environment:
-      name: manual_approval
+      name: approval
+      url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
-      - name: Download Trivy scan report
-        uses: actions/download-artifact@v3
+      - name: Wait for manual approval
+        uses: softprops/turnstyle@v1
         with:
-          name: trivy-report
+          status: approved
 
-      # - name: Login to Local Docker Registry
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: localhost:5000
-      #     username: ${{ secrets.LOCAL_REGISTRY_USERNAME }}
-      #     password: ${{ secrets.LOCAL_REGISTRY_PASSWORD }}
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login to Quay Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAYIO_USERNAME }}
-          password: ${{ secrets.QUAYIO_TOKEN }}
-
-      - name: Pull and re-tag image for public registries
+      - name: Push Docker image after approval
         run: |
-          docker pull localhost:5000/${{ needs.build_and_scan.outputs.image }}
-          docker tag localhost:5000/${{ needs.build_and_scan.outputs.image }} klinus/${{ needs.build_and_scan.outputs.dockerfile_name }}-${{ needs.build_and_scan.outputs.platform_tag }}:${{ needs.build_and_scan.outputs.date }}
-          docker tag localhost:5000/${{ needs.build_and_scan.outputs.image }} quay.io/klinus/${{ needs.build_and_scan.outputs.dockerfile_name }}-${{ needs.build_and_scan.outputs.platform_tag }}:${{ needs.build_and_scan.outputs.date }}
-
-      - name: Push image to public registries
-        run: |
-          docker push klinus/${{ needs.build_and_scan.outputs.dockerfile_name }}-${{ needs.build_and_scan.outputs.platform_tag }}:${{ needs.build_and_scan.outputs.date }}
-          docker push quay.io/klinus/${{ needs.build_and_scan.outputs.dockerfile_name }}-${{ needs.build_and_scan.outputs.platform_tag }}:${{ needs.build_and_scan.outputs.date }}
+          docker push klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
