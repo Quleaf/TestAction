@@ -48,7 +48,7 @@ jobs:
           file="${{ steps.changed_files.outputs.files }}"
           dir=$(dirname "$file")
           base=$(basename "$file")
-          dockerfile_name="${base%.*}"W
+          dockerfile_name="${base%.*}"
           if [[ "$dir" == *"x86"* ]]; then
             platform="linux/amd64"
             platform_tag="x86"
