@@ -18,7 +18,7 @@ graph TD
     M --> N[Build Docker image locally and push to Docker Hub]
     N --> O[Create Trivy report directory]
     O --> P[Scan Docker image with Trivy]
-    P --> Q[Upload Trivy scan report]
+    P --> Q[Upload Trivy Scan report]
 
     B --> R[approve-and-deploy]
     R --> S{Wait for manual approval}
