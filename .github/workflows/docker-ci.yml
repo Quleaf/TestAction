@@ -129,6 +129,8 @@ jobs:
           platforms: ${{ steps.parse_path.outputs.platform }}
           push: true
           provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
 
       - name: Create Trivy report directory
