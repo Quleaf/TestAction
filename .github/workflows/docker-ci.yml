@@ -10,7 +10,7 @@ jobs:
       dockerfile_name: ${{ steps.parse_path.outputs.dockerfile_name }}
       platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
       date: ${{ steps.date.outputs.date }}
-      proceed_to_approval: ${{ steps.changed_files.outputs.proceed_to_approval }}
+      proceed_to_approval: ${{ steps.set_proceed_flag.outputs.proceed_to_approval }}
     
     steps:
       - name: Checkout repository
@@ -35,14 +35,17 @@ jobs:
         run: |
           echo "Files from output: ${{ steps.changed_files.outputs.files }}"
 
-      - name: Check single dockerfile modification
-        if: contains(steps.changed_files.outputs.files, '\n')
-        run: ｜
-          if [[ $(echo "${{ steps.changed_files.outputs.files }}" | wc -l) -gt 1 ]]; then
-            echo "We skipped compilation since multiple Dockerfiles have been modified"
+      - name: Set proceed flag
+        id: set_proceed_flag
+        run: |
+          if [ -z "${{ steps.changed_files.outputs.files }}" ]; then
+            echo "No Dockerfile has been modified. Setting proceed_to_approval to false."
             echo "proceed_to_approval=false" >> $GITHUB_OUTPUT
-            exit 0
+          elif echo "${{ steps.changed_files.outputs.files }}" | grep -q '\n'; then
+            echo "Multiple Dockerfiles have been modified. Setting proceed_to_approval to false."
+            echo "proceed_to_approval=false" >> $GITHUB_OUTPUT
           else
+            echo "Single Dockerfile has been modified. Setting proceed_to_approval to true."
             echo "proceed_to_approval=true" >> $GITHUB_OUTPUT
           fi
 
