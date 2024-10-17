@@ -141,7 +141,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   SCAN-AND-REPORT-job:
-    needs: PREPARE-job
+    needs: BUILD-AND-PUSH-job
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
@@ -169,7 +169,7 @@ jobs:
             path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
   APPROVE-AND-DEPLOY-job:
-    needs: PREPARE-job
+    needs: SCAN-AND-REPORT-job
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
