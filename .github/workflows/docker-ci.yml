@@ -6,6 +6,11 @@ on:
 jobs:
   build-and-scan:
     runs-on: work
+    outputs:
+      dockerfile_name: ${{ steps.parse_path.outputs.dockerfile_name }}
+      platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
+      date: ${{ steps.date.outputs.date }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -153,7 +158,18 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Push Docker image after approval
+      
+      - name: Login to quay Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ vars.QUAYIO_USERNAME }}
+          password: ${{ secrets.QUAYIO_TOKEN }}
+      
+      - name: Tag Docker image for Quay.IO
         run: |
-          docker push klinus/${{ needs.build-and-scan.outputs.parse_path.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.parse_path.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date.outputs.date }}
+          docker tag klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }} quay.io/klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
+
+      - name: Push Docker image to Quay.IO after approval
+        run: |
+          docker push quay.io/klinus/${{ needs.build-and-scan.outputs.parse_path.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.parse_path.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date.outputs.date }}
