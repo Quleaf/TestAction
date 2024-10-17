@@ -92,7 +92,13 @@ jobs:
           echo "Tag: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}"
           echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
 
-      - name: Build Docker image locally
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}  
+
+      - name: Build Docker image locally and push to private Dockerhub
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: docker/build-push-action@v6
         with:
@@ -102,8 +108,9 @@ jobs:
             klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
             ${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
           platforms: ${{ steps.parse_path.outputs.platform }}
-          push: false
+          push: true
           provenance: false
+
 
       - name: Create Trivy report directory
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
@@ -113,7 +120,7 @@ jobs:
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}'
+          image-ref: 'klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}'
           format: 'table'
           output: './trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt'
           ignore-unfixed: true
