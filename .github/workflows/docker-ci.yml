@@ -23,6 +23,7 @@ jobs:
           files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} '*.dockerfile')
           if [ -z "$files" ]; then
             echo "No dockerfile has been modified"
+            exit 1
           else
             echo "Files changed: $files"
             echo "files=$files" >> $GITHUB_OUTPUT
@@ -36,7 +37,7 @@ jobs:
         if: contains(steps.changed_files.outputs.files, '\n')
         run: ｜
           echo "We skipped compilation since multiple Dockerfiles have been modified"
-          exit 0
+          exit 1
 
       - name: Set up QEMU
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
