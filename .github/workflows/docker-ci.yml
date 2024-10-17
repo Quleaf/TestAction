@@ -63,6 +63,12 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: image=moby/buildkit:latest
+      
+      - name: Show current Buildx builders
+        run: docker buildx ls
+  
+      - name: Enable BuildKit
+        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
 
       - name: Login to Docker Hub
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
