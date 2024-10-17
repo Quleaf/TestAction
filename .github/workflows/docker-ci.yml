@@ -168,6 +168,7 @@ jobs:
       
       - name: Tag Docker image for Quay.IO
         run: |
+          docker pull klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
           docker tag klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }} quay.io/klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
 
       - name: Push Docker image to Quay.IO after approval
