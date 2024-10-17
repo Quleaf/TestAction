@@ -10,7 +10,7 @@ jobs:
       dockerfile_name: ${{ steps.parse_path.outputs.dockerfile_name }}
       platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
       date: ${{ steps.date.outputs.date }}
-      proceed_to_approval: ${{ steps.set_proceed_flag.outputs.proceed_to_approval }}
+      proceed_to_approval: ${{ steps.changed_files.outputs.proceed_to_approval }}
     
     steps:
       - name: Checkout repository
