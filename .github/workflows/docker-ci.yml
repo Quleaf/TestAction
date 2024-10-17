@@ -4,13 +4,16 @@ on:
   push:
 
 jobs:
-  build-and-scan:
+  PREPARE-job:
     runs-on: work
     outputs:
       dockerfile_name: ${{ steps.parse_path.outputs.dockerfile_name }}
       platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
       date: ${{ steps.date.outputs.date }}
       proceed_valid: ${{ steps.set_proceed_flag.outputs.proceed_valid }}
+      directory: ${{ steps.parse_path.outputs.directory }}
+      files: ${{ steps.changed_files.outputs.files }}
+      platform: ${{ steps.parse_path.outputs.platform }}
     
     steps:
       - name: Checkout repository
@@ -111,7 +114,12 @@ jobs:
           echo "File: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}"
           echo "Tag: klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}"
           echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
-
+  
+  BUILD-AND-PUSH-job:
+    needs: PREPARE-job
+    runs-on: work
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -119,31 +127,35 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}  
 
       - name: Build Docker image locally and push to private Dockerhub
-        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
+        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}
-          file: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}
+          context: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.directory }}
+          file: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.files }}
           tags: | 
-            klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}
-          platforms: ${{ steps.parse_path.outputs.platform }}
+            klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+          platforms: ${{ needs.PREPARE-job.outputs.platform }}
           push: true
           provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-
+  SCAN-AND-REPORT-job:
+    needs: PREPARE-job
+    runs-on: work
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    steps:
       - name: Create Trivy report directory
-        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
+        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         run: mkdir -p ./trivy-reports
   
       - name: Scan the Docker image with Trivy
-        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
+        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'klinus/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}'
+          image-ref: 'klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag}}:${{needs.PREPARE-job.outputs.date }}'
           format: 'table'
-          output: './trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt'
+          output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
@@ -151,15 +163,15 @@ jobs:
 
       - name: Upload Trivy scan report
         uses: actions/upload-artifact@v3
-        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
+        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         with:
-            name: trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}
-            path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ steps.parse_path.outputs.dockerfile_name }}.txt
+            name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
+            path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
-  approve-and-deploy:
-    needs: build-and-scan
+  APPROVE-AND-DEPLOY-job:
+    needs: PREPARE-job
     runs-on: work
-    if: needs.build-and-scan.outputs.proceed_valid == 'true'
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
       - name: Wait for manual approval
         uses: trstringer/manual-approval@v1
@@ -187,12 +199,12 @@ jobs:
 
       - name: Pull Docker image from Docker Hub
         run: |
-          docker pull klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
+          docker pull klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
       - name: Tag Docker image for Quay.IO
         run: |
-          docker tag klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }} quay.io/klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
+          docker tag klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
       - name: Push Docker image to Quay.IO after approval
         run: |
-          docker push quay.io/klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
+          docker push quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
