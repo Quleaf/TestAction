@@ -26,7 +26,7 @@ graph TD
     S -- No --> T1[cancel]
     T --> U[Login to quay Container Registry]
     U --> V[Pull Docker image from Docker Hub]
-    V --> W[Tag Docker image for Quay.IO]
-    W --> X[Push Docker image to Quay.IO after approval]
+    V --> W[Tag Docker image for Quay.io]
+    W --> X[Push Docker image to Quay.io after approval]
 ```
   
