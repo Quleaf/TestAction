@@ -34,7 +34,9 @@ jobs:
 
       - name: Check single dockerfile modification
         if: contains(steps.changed_files.outputs.files, '\n')
-        run: echo "We skipped compilation since multiple Dockerfiles have been modified"
+        run: ｜
+          echo "We skipped compilation since multiple Dockerfiles have been modified"
+          exit 0
 
       - name: Set up QEMU
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
@@ -166,11 +168,15 @@ jobs:
           username: ${{ vars.QUAYIO_USERNAME }}
           password: ${{ secrets.QUAYIO_TOKEN }}
       
-      - name: Tag Docker image for Quay.IO
+
+      - name: Pull Docker image from Docker Hub
         run: |
           docker pull klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
+
+      - name: Tag Docker image for Quay.IO
+        run: |
           docker tag klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }} quay.io/klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
 
       - name: Push Docker image to Quay.IO after approval
         run: |
-          docker push quay.io/klinus/${{ needs.build-and-scan.outputs.parse_path.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.parse_path.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date.outputs.date }}
+          docker push quay.io/klinus/${{ needs.build-and-scan.outputs.dockerfile_name }}-${{ needs.build-and-scan.outputs.platform_tag }}:${{ needs.build-and-scan.outputs.date }}
