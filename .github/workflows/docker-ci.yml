@@ -55,14 +55,6 @@ jobs:
           fi
 
 
-
-      - name: Login to Docker Hub
-        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Parse file path
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
         id: parse_path
@@ -130,7 +122,14 @@ jobs:
 
       - name: Enable BuildKit
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV      
+      
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image locally and push to private Dockerhub
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
@@ -152,11 +151,9 @@ jobs:
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
       - name: Create Trivy report directory
-        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         run: mkdir -p ./trivy-reports
   
       - name: Scan the Docker image with Trivy
-        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag}}:${{needs.PREPARE-job.outputs.date }}'
