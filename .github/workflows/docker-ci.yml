@@ -141,7 +141,7 @@ jobs:
       - name: Wait for manual approval
         uses: trstringer/manual-approval@v1
         with:
-          secret: ${{ secrets.GITHUB_TOKEN }}
+          secret: ${{ github.TOKEN }}
           approvers: Quleaf
           minimum-approvals: 1
           issue-title: "Approval for deployment"
