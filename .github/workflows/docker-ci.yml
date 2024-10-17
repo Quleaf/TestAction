@@ -54,22 +54,7 @@ jobs:
             echo "proceed_valid=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up QEMU
-        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
-        uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
-          install: true
-      
-      - name: Show current Buildx builders
-        run: docker buildx ls
-  
-      - name: Enable BuildKit
-        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
 
       - name: Login to Docker Hub
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
@@ -129,6 +114,24 @@ jobs:
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
+      - name: Set up QEMU
+        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          install: true
+    
+      - name: Show current Buildx builders
+        run: docker buildx ls
+
+      - name: Enable BuildKit
+        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+
       - name: Build Docker image locally and push to private Dockerhub
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: docker/build-push-action@v6
