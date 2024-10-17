@@ -10,6 +10,7 @@ jobs:
       dockerfile_name: ${{ steps.parse_path.outputs.dockerfile_name }}
       platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
       date: ${{ steps.date.outputs.date }}
+      proceed_to_approval: ${{ steps.set_proceed_flag.outputs.proceed_to_approval }}
     
     steps:
       - name: Checkout repository
@@ -23,6 +24,7 @@ jobs:
           files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} '*.dockerfile')
           if [ -z "$files" ]; then
             echo "No dockerfile has been modified"
+            echo "proceed_to_approval=false" >> $GITHUB_OUTPUT
             exit 0
           else
             echo "Files changed: $files"
@@ -36,8 +38,13 @@ jobs:
       - name: Check single dockerfile modification
         if: contains(steps.changed_files.outputs.files, '\n')
         run: ｜
-          echo "We skipped compilation since multiple Dockerfiles have been modified"
-          exit 0
+          if [[ $(echo "${{ steps.changed_files.outputs.files }}" | wc -l) -gt 1 ]]; then
+            echo "We skipped compilation since multiple Dockerfiles have been modified"
+            echo "proceed_to_approval=false" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "proceed_to_approval=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up QEMU
         if: "!contains(steps.changed_files.outputs.files, '\n') && steps.changed_files.outputs.files != ''"
@@ -145,6 +152,7 @@ jobs:
   approve-and-deploy:
     needs: build-and-scan
     runs-on: work
+    if: needs.build-and-scan.outputs.proceed_to_approval == 'true'
     steps:
       - name: Wait for manual approval
         uses: trstringer/manual-approval@v1
@@ -156,7 +164,7 @@ jobs:
           issue-body: "Please approve or deny the deployment of the Docker image."
           exclude-workflow-initiator-as-approver: false
 
-      - name: Login to Docker Hub
+      - name: Login to Docker Hub       
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
