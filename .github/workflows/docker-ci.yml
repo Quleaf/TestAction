@@ -146,7 +146,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   SCAN-AND-REPORT-job:
-    needs: BUILD-AND-PUSH-job
+    needs: [BUILD-AND-PUSH-job, PREPARE-job]
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
@@ -163,7 +163,6 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-
       - name: Upload Trivy scan report
         uses: actions/upload-artifact@v3
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
@@ -172,7 +171,7 @@ jobs:
             path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
   APPROVE-AND-DEPLOY-job:
-    needs: SCAN-AND-REPORT-job
+    needs: [SCAN-AND-REPORT-job, PREPARE-job]
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
