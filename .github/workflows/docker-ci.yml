@@ -133,14 +133,6 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-            path: /tmp/.buildx-cache
-            key: buildx-${{ github.sha }}
-            restore-keys: |
-              buildx-
-
       - name: Build Docker image locally and push to private Dockerhub
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: docker/build-push-action@v6
