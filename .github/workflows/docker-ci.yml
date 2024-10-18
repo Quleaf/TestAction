@@ -109,6 +109,8 @@ jobs:
       - name: Set up QEMU
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ needs.PREPARE-job.outputs.platform }}
 
       - name: Set up Docker Buildx
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
@@ -130,6 +132,14 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+            path: /tmp/.buildx-cache
+            key: buildx-${{ github.sha }}
+            restore-keys: |
+              buildx-
 
       - name: Build Docker image locally and push to private Dockerhub
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
