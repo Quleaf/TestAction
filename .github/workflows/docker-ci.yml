@@ -107,13 +107,11 @@ jobs:
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
       - name: Set up QEMU
-        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: ${{ needs.PREPARE-job.outputs.platform }}
 
       - name: Set up Docker Buildx
-        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
@@ -123,7 +121,6 @@ jobs:
         run: docker buildx ls
 
       - name: Enable BuildKit
-        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV      
       
 
@@ -134,7 +131,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image locally and push to private Dockerhub
-        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.directory }}
@@ -164,10 +160,14 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+      
+      - name: Add Trivy report to GitHub Actions summary
+        run: |
+          echo '## Trivy Scan Report for ${{ needs.PREPARE-job.outputs.dockerfile_name }}' >> $GITHUB_STEP_SUMMARY
+          cat ./trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Trivy scan report
         uses: actions/upload-artifact@v4
-        if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         with:
             name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
             path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
