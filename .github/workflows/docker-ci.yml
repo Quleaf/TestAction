@@ -17,7 +17,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2  # Ensure enough history is available
 
@@ -166,7 +166,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy scan report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: needs.PREPARE-job.outputs.proceed_valid == 'true'
         with:
             name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
