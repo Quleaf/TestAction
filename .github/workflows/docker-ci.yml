@@ -150,7 +150,7 @@ jobs:
           bucket: pawsey0001-image-compilation/
           destination_path: ${{ needs.PREPARE-job.outputs.dockerfile_name }}
 
-     - name: Upload image tar to S3 with rclone
+      - name: Upload image tar to S3 with rclone
         run: |
           rclone copy ${GITHUB_WORKSPACE}/image.tar pawsey0001:${{ inputs.bucket }}/${{ inputs.destination_path }}/
 
