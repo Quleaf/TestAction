@@ -33,6 +33,7 @@ runs:
         else
           echo "rclone is not installed."
           echo "installed=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Install rclone
       if: steps.check_rclone.outputs.installed != 'true'
