@@ -25,6 +25,7 @@ runs:
   steps:
     - name: Check if rclone is installed
       id: check_rclone
+      shell: bash
       run: |
         if command -v rclone >/dev/null 2>&1; then
           echo "rclone is already installed."
@@ -35,11 +36,13 @@ runs:
 
     - name: Install rclone
       if: steps.check_rclone.outputs.installed != 'true'
+      shell: bash
       run: |
         echo "Installing rclone..."
         curl https://rclone.org/install.sh | sudo bash
 
     - name: Configure rclone
+      shell: bash
       run: |
         mkdir -p ~/.config/rclone
         cat <<EOF > ~/.config/rclone/rclone.conf
@@ -52,6 +55,7 @@ runs:
         EOF
 
     - name: Verify rclone Configuration
+      shell: bash
       run: |
         echo "Verifying rclone configuration..."
         rclone config show
