@@ -105,6 +105,9 @@ jobs:
     needs: PREPARE-job
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    env:
+      BUCKET: pawsey0001-image-compilation
+      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -148,12 +151,13 @@ jobs:
           access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
           secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
           endpoint: https://projects.pawsey.org.au
-          bucket: pawsey0001-image-compilation/
-          destination_path: ${{ needs.PREPARE-job.outputs.dockerfile_name }}
+          bucket: ${{ env.BUCKET }}
+          destination_path: ${{ env.DESTINATION_PATH }}
 
       - name: Upload image tar to S3 with rclone
         run: |
-          rclone copy ${{ github.workspace }}/image.tar pawsey0001:${{ inputs.bucket }}/${{ inputs.destination_path }}/
+          set -e
+          rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
 
   # SCAN-AND-REPORT-job:
   #   needs: [BUILD-AND-PUSH-job, PREPARE-job]
