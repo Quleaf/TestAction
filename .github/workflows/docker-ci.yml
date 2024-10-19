@@ -152,7 +152,7 @@ jobs:
 
       - name: Upload image tar to S3 with rclone
         run: |
-          rclone copy ${GITHUB_WORKSPACE}/image.tar pawsey0001:${{ inputs.bucket }}/${{ inputs.destination_path }}/
+          rclone copy ${{ github.workspace }}/image.tar pawsey0001:${{ inputs.bucket }}/${{ inputs.destination_path }}/
 
   # SCAN-AND-REPORT-job:
   #   needs: [BUILD-AND-PUSH-job, PREPARE-job]
