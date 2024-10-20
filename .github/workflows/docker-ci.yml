@@ -105,9 +105,9 @@ jobs:
     needs: PREPARE-job
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-    env:
-      BUCKET: pawsey0001-image-compilation
-      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
+    # env:
+    #   BUCKET: pawsey0001-image-compilation
+    #   DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -145,48 +145,54 @@ jobs:
           docker save -o ${GITHUB_WORKSPACE}/image.tar klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
           echo "Docker image saved to ${GITHUB_WORKSPACE}/image.tar"
 
-      - name: Setup rclone
-        uses: ./.github/actions/setup-rclone
-        with:
-          access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
-          secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
-          endpoint: https://projects.pawsey.org.au
-          bucket: ${{ env.BUCKET }}
-          destination_path: ${{ env.DESTINATION_PATH }}
-
-      - name: Upload image tar to S3 with rclone
+      - name: Move image.tar to persistent storage
         run: |
-          set -e
-          rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
+          mkdir -p /home/runner/artifacts
+          mv ${GITHUB_WORKSPACE}/image.tar /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar
+          echo "Moved image.tar to /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar"
 
-  # SCAN-AND-REPORT-job:
-  #   needs: [BUILD-AND-PUSH-job, PREPARE-job]
-  #   runs-on: work
-  #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-  #   steps:
-  #     - name: Create Trivy report directory
-  #       run: mkdir -p ./trivy-reports
+      # - name: Setup rclone
+      #   uses: ./.github/actions/setup-rclone
+      #   with:
+      #     access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
+      #     secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
+      #     endpoint: https://projects.pawsey.org.au
+      #     bucket: ${{ env.BUCKET }}
+      #     destination_path: ${{ env.DESTINATION_PATH }}
+
+      # - name: Upload image tar to S3 with rclone
+      #   run: |
+      #     set -e
+      #     rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
+
+  SCAN-AND-REPORT-job:
+    needs: [BUILD-AND-PUSH-job, PREPARE-job]
+    runs-on: work
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    steps:
+      - name: Create Trivy report directory
+        run: mkdir -p ./trivy-reports
   
-  #     - name: Scan the Docker image with Trivy
-  #       uses: aquasecurity/trivy-action@master
-  #       with:
-  #         image-ref: 'klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag}}:${{needs.PREPARE-job.outputs.date }}'
-  #         format: 'table'
-  #         output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
-  #         ignore-unfixed: true
-  #         vuln-type: 'os,library'
-  #         severity: 'CRITICAL,HIGH'
+      - name: Scan the Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag}}:${{needs.PREPARE-job.outputs.date }}'
+          format: 'table'
+          output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
       
-  #     - name: Add Trivy report to GitHub Actions summary
-  #       run: |
-  #         echo '## Trivy Scan Report for ${{ needs.PREPARE-job.outputs.dockerfile_name }}' >> $GITHUB_STEP_SUMMARY
-  #         cat ./trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt >> $GITHUB_STEP_SUMMARY
+      - name: Add Trivy report to GitHub Actions summary
+        run: |
+          echo '## Trivy Scan Report for ${{ needs.PREPARE-job.outputs.dockerfile_name }}' >> $GITHUB_STEP_SUMMARY
+          cat ./trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt >> $GITHUB_STEP_SUMMARY
 
-  #     - name: Upload Trivy scan report
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #           name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
-  #           path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
+      - name: Upload Trivy scan report
+        uses: actions/upload-artifact@v4
+        with:
+            name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
+            path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
   # APPROVE-AND-DEPLOY-job:
   #   needs: [SCAN-AND-REPORT-job, PREPARE-job]
