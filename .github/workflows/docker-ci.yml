@@ -80,9 +80,9 @@ jobs:
           dockerfile_name="${base%.*}"
           echo "Dockerfile name: $dockerfile_name"
           # Determine platform by checking file contents
-          if grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(arm|aarch64)' "$file"; then
+          if grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(arm|aarch64|arm64)' "$file"; then
             platform="linux/arm64"
-            platform_tag="arm"
+            platform_tag="arm"            
           elif grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(x86|amd64)' "$file"; then
             platform="linux/amd64"
             platform_tag="x86"
@@ -96,7 +96,7 @@ jobs:
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
           echo "directory=$dir" >> $GITHUB_OUTPUT
-        
+          exit 0 
 
       - name: Set current date
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
