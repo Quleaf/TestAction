@@ -186,7 +186,7 @@ jobs:
             path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
   APPROVE-AND-DEPLOY-job:
-    needs: [SCAN-AND-REPORT-job, PREPARE-job]
+    needs: [BUILD-AND-PUSH-job,SCAN-AND-REPORT-job, PREPARE-job]
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     env:
