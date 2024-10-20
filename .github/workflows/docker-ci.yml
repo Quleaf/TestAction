@@ -148,8 +148,8 @@ jobs:
       - name: Move image.tar to persistent storage
         run: |
           sudo mkdir -p /home/runner/artifacts
-          sudo mv ${GITHUB_WORKSPACE}/image.tar /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar
-          echo "Moved image.tar to /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar"
+          sudo mv ${GITHUB_WORKSPACE}/image.tar /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}/image.tar
+          echo "Moved image.tar to /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}/image.tar"
 
       # - name: Setup rclone
       #   uses: ./.github/actions/setup-rclone
