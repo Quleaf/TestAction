@@ -152,7 +152,7 @@ jobs:
 
       - name: Save Docker image to tar file
         run: |
-          docker save -o ${GITHUB_WORKSPACE}/image.tar ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+          docker save -o ${GITHUB_WORKSPACE}/image.tar ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
           echo "Docker image saved to ${GITHUB_WORKSPACE}/image.tar"
 
       - name: Move image.tar to local persistent storage "$HOME/runner/artifacts"
