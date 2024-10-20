@@ -2,6 +2,7 @@
 FROM alpine:latest
 
 LABEL org.opencontainers.image.arch=x86
+LABEL org.opencontainers.image.compilation=auto
 
 # # Install curl package
 RUN apk add --no-cache curl
