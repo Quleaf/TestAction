@@ -240,7 +240,7 @@ jobs:
     steps:
       - name: Clean-up
         run: |
-          rm -rf /home/runner/artifacts/*
+          sudo rm -rf /home/runner/artifacts/*
 
 
 
