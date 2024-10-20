@@ -155,10 +155,10 @@ jobs:
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
-      - name: Move back persistent storage "/home/runner/artifacts" to current directory
+      - name: Copy back persistent storage "/home/runner/artifacts" to current directory
         run: |
-          sudo mv /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
-          echo "Moved image.tar from /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
+          sudo cp /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
+          echo "Copied image.tar from /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
 
 
       - name: Create Trivy report directory
@@ -200,46 +200,110 @@ jobs:
   #         issue-body: "Please approve or deny the deployment of the Docker image."
   #         exclude-workflow-initiator-as-approver: false
 
+  # APPROVE-AND-DEPLOY-job:
+  #   needs: [SCAN-AND-REPORT-job, PREPARE-job]
+  #   runs-on: work
+  #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+  #   env:
+  #    BUCKET: pawsey0001-image-compilation
+  #    DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
+  #   environment:
+  #     name: manual_approval  
+  #   steps:
+  #     - name: Login to Docker Hub       
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ vars.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+  #     - name: Login to quay Container Registry
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: quay.io
+  #         username: ${{ vars.QUAYIO_USERNAME }}
+  #         password: ${{ secrets.QUAYIO_TOKEN }}
+      
+  #     - name: Load Docker image from image.tar
+  #       run: |
+  #           docker load -i ${GITHUB_WORKSPACE}/image.tar
+
+  #     - name: Pull Docker image from Docker Hub
+  #       run: |
+  #         docker pull klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+
+  #     - name: Tag Docker image for Quay.IO
+  #       run: |
+  #         docker tag klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+
+  #     - name: Push Docker image to Quay.IO after approval
+  #       run: |
+  #         docker push quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+
+  #     - name: Setup rclone
+  #       uses: ./.github/actions/setup-rclone
+  #       with:
+  #         access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
+  #         secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
+  #         endpoint: https://projects.pawsey.org.au
+  #         bucket: ${{ env.BUCKET }}
+  #         destination_path: ${{ env.DESTINATION_PATH }}
+
+  #     - name: Upload image tar to S3 with rclone
+  #       run: |
+  #         set -e
+  #         rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
+
   APPROVE-AND-DEPLOY-job:
     needs: [SCAN-AND-REPORT-job, PREPARE-job]
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    strategy:
+      matrix:
+        task: [push-dockerhub, push-quay, upload-s3]
     env:
-     BUCKET: pawsey0001-image-compilation
-     DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
+      BUCKET: pawsey0001-image-compilation
+      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
     environment:
-      name: manual_approval
+      name: manual_approval  
     steps:
-      - name: Login to Docker Hub       
+      - name: Copy back persistent storage "/home/runner/artifacts" to current directory
+        run: |
+          sudo cp /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
+          echo "Copied image.tar from /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
+      
+      - name: Load Docker image from image.tar and tag for dockerhub and quay.io
+        run: |
+          docker load -i ${GITHUB_WORKSPACE}/image.tar
+          docker tag klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+
+      - name: Login to Docker Hub
+        if: matrix.task == 'push-dockerhub'
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}        
+
+      - name: Push Docker image to DockerHub
+        if: matrix.task == 'push-dockerhub'
+        run: |
+          docker push klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
       
-      - name: Login to quay Container Registry
+      - name: Login to Quay Container Registry
+        if: matrix.task == 'push-quay'
         uses: docker/login-action@v3
         with:
           registry: quay.io
           username: ${{ vars.QUAYIO_USERNAME }}
           password: ${{ secrets.QUAYIO_TOKEN }}
-      
-      - name: Load Docker image from image.tar
-        run: |
-            docker load -i ${GITHUB_WORKSPACE}/image.tar
-
-      - name: Pull Docker image from Docker Hub
-        run: |
-          docker pull klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
-      - name: Tag Docker image for Quay.IO
-        run: |
-          docker tag klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
       - name: Push Docker image to Quay.IO after approval
+        if: matrix.task == 'push-quay'
         run: |
           docker push quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
+      # Steps for uploading to S3 with rclone
       - name: Setup rclone
+        if: matrix.task == 'upload-s3'
         uses: ./.github/actions/setup-rclone
         with:
           access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
@@ -247,8 +311,9 @@ jobs:
           endpoint: https://projects.pawsey.org.au
           bucket: ${{ env.BUCKET }}
           destination_path: ${{ env.DESTINATION_PATH }}
-
+      
       - name: Upload image tar to S3 with rclone
+        if: matrix.task == 'upload-s3'
         run: |
           set -e
           rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
