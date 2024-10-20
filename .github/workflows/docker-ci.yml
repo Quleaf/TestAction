@@ -147,7 +147,7 @@ jobs:
 
       - name: Move image.tar to persistent storage
         run: |
-          mkdir -p /home/runner/artifacts
+          sudo mkdir -p /home/runner/artifacts
           mv ${GITHUB_WORKSPACE}/image.tar /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar
           echo "Moved image.tar to /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar"
 
