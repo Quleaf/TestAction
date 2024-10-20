@@ -83,7 +83,7 @@ jobs:
           if grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(arm|aarch64|arm64)' "$file"; then
             platform="linux/arm64"
             platform_tag="arm"            
-          elif grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(x86|amd64)' "$file"; then
+          elif grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(x86|amd64|x86_64)' "$file"; then
             platform="linux/amd64"
             platform_tag="x86"
           else
@@ -253,7 +253,7 @@ jobs:
     steps:
       - name: Clean-up
         run: |
-          sudo rm -rf $HOME/runner/artifacts/*
+          sudo rm -rf $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
 
 
 
