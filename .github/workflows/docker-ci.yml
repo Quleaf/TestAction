@@ -37,6 +37,19 @@ jobs:
       - name: Debug output of changed files
         run: |
           echo "Files from output: ${{ steps.changed_files.outputs.files }}"
+      
+      # - name: Check if on compilation branch
+      #   id: check_branch
+      #   run: |
+      #     branch_name=${GITHUB_REF##*/}
+      #     if [ "$branch_name" != "compilation" ]; then
+      #       echo "Not on compilation branch. Setting proceed_valid to false."
+      #       echo "proceed_valid=false" >> $GITHUB_OUTPUT
+      #       exit 0
+      #     else
+      #       echo "On compilation branch."
+      #     fi
+
 
       - name: Set proceed flag
         id: set_proceed_flag
@@ -54,7 +67,6 @@ jobs:
             echo "proceed_valid=true" >> $GITHUB_OUTPUT
           fi
 
-
       - name: Parse file path
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
         id: parse_path
@@ -67,15 +79,15 @@ jobs:
           echo "Base: $base"
           dockerfile_name="${base%.*}"
           echo "Dockerfile name: $dockerfile_name"
-          # Determine platform
-          if [[ "$dir" == *"x86"* ]]; then
-            platform="linux/amd64"
-            platform_tag="x86"
-          elif [[ "$dir" == *"arm"* ]]; then
+          # Determine platform by checking file contents
+          if grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(arm|aarch64)' "$file"; then
             platform="linux/arm64"
             platform_tag="arm"
+          elif grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(x86|amd64)' "$file"; then
+            platform="linux/amd64"
+            platform_tag="x86"
           else
-            echo "Unknown directory for $file. Exiting."
+            echo "No known architecture label found in $file. Exiting."
             exit 1
           fi
           echo "Platform: $platform"
@@ -84,6 +96,7 @@ jobs:
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
           echo "directory=$dir" >> $GITHUB_OUTPUT
+        
 
       - name: Set current date
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
