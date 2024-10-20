@@ -107,7 +107,7 @@ jobs:
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     env:
       BUCKET: pawsey0001-image-compilation
-      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}
+      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
