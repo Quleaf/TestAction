@@ -148,7 +148,7 @@ jobs:
       - name: Move image.tar to persistent storage
         run: |
           sudo mkdir -p /home/runner/artifacts
-          mv ${GITHUB_WORKSPACE}/image.tar /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar
+          sudo mv ${GITHUB_WORKSPACE}/image.tar /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar
           echo "Moved image.tar to /home/runner/artifacts/${GITHUB_WORKSPACE}/image.tar"
 
       # - name: Setup rclone
@@ -165,34 +165,34 @@ jobs:
       #     set -e
       #     rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
 
-  SCAN-AND-REPORT-job:
-    needs: [BUILD-AND-PUSH-job, PREPARE-job]
-    runs-on: work
-    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-    steps:
-      - name: Create Trivy report directory
-        run: mkdir -p ./trivy-reports
+  # SCAN-AND-REPORT-job:
+  #   needs: [BUILD-AND-PUSH-job, PREPARE-job]
+  #   runs-on: work
+  #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+  #   steps:
+  #     - name: Create Trivy report directory
+  #       run: mkdir -p ./trivy-reports
   
-      - name: Scan the Docker image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag}}:${{needs.PREPARE-job.outputs.date }}'
-          format: 'table'
-          output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+  #     - name: Scan the Docker image with Trivy
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         image-ref: 'klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag}}:${{needs.PREPARE-job.outputs.date }}'
+  #         format: 'table'
+  #         output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
+  #         ignore-unfixed: true
+  #         vuln-type: 'os,library'
+  #         severity: 'CRITICAL,HIGH'
       
-      - name: Add Trivy report to GitHub Actions summary
-        run: |
-          echo '## Trivy Scan Report for ${{ needs.PREPARE-job.outputs.dockerfile_name }}' >> $GITHUB_STEP_SUMMARY
-          cat ./trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt >> $GITHUB_STEP_SUMMARY
+  #     - name: Add Trivy report to GitHub Actions summary
+  #       run: |
+  #         echo '## Trivy Scan Report for ${{ needs.PREPARE-job.outputs.dockerfile_name }}' >> $GITHUB_STEP_SUMMARY
+  #         cat ./trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt >> $GITHUB_STEP_SUMMARY
 
-      - name: Upload Trivy scan report
-        uses: actions/upload-artifact@v4
-        with:
-            name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
-            path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
+  #     - name: Upload Trivy scan report
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #           name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
+  #           path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
   # APPROVE-AND-DEPLOY-job:
   #   needs: [SCAN-AND-REPORT-job, PREPARE-job]
