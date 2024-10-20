@@ -42,31 +42,33 @@ jobs:
       - name: Set proceed flag
         id: set_proceed_flag
         run: |
-          if [ -z "${{ steps.changed_files.outputs.files }}" ]; then
-            echo "No Dockerfile has been modified. Setting proceed_valid to false."
-            echo "proceed_valid=false" >> $GITHUB_OUTPUT
-            exit 0
-          elif echo "${{ steps.changed_files.outputs.files }}" | grep -q '\n'; then
-            echo "Multiple Dockerfiles have been modified. Setting proceed_valid to false."
-            echo "proceed_valid=false" >> $GITHUB_OUTPUT
-            exit 0
-          else
-            echo "Single Dockerfile has been modified. Setting proceed_valid to true."
-            echo "proceed_valid=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Check if on compilation branch
-        id: check_branch
-        run: |
           branch_name=${GITHUB_REF##*/}
+          
+          # if compilation branch
           if [ "$branch_name" != "compilation" ]; then
             echo "Not on compilation branch. Setting proceed_valid to false."
             echo "proceed_valid=false" >> $GITHUB_OUTPUT
             exit 0
-          else
-            echo "On compilation branch."
           fi
-
+          
+          # if Dockerfile modified
+          if [ -z "${{ steps.changed_files.outputs.files }}" ]; then
+            echo "No Dockerfile has been modified. Setting proceed_valid to false."
+            echo "proceed_valid=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # if only one Dockerfile modified
+          file_count=$(echo "${{ steps.changed_files.outputs.files }}" | wc -w)
+          if [ "$file_count" -gt 1 ]; then
+            echo "Multiple Dockerfiles have been modified. Setting proceed_valid to false."
+            echo "proceed_valid=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "Single Dockerfile has been modified and on compilation branch. Setting proceed_valid to true."
+          echo "proceed_valid=true" >> $GITHUB_OUTPUT
+          
       - name: Parse file path
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
         id: parse_path
