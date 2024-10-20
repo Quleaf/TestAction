@@ -142,11 +142,11 @@ jobs:
           docker save -o ${GITHUB_WORKSPACE}/image.tar klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
           echo "Docker image saved to ${GITHUB_WORKSPACE}/image.tar"
 
-      - name: Move image.tar to persistent storage "/home/runner/artifacts"
+      - name: Move image.tar to persistent storage "$HOME/runner/artifacts"
         run: |
-          sudo mkdir -p /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
-          sudo mv ${GITHUB_WORKSPACE}/image.tar /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar
-          echo "Moved image.tar to /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar"
+          sudo mkdir -p $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
+          sudo mv ${GITHUB_WORKSPACE}/image.tar $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar
+          echo "Moved image.tar to $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar"
 
 
 
@@ -155,10 +155,10 @@ jobs:
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
-      - name: Copy back persistent storage "/home/runner/artifacts" to current directory
+      - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory
         run: |
-          cp /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
-          echo "Copied image.tar from /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
+          cp $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
+          echo "Copied image.tar from $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
 
 
       - name: Create Trivy report directory
@@ -240,7 +240,7 @@ jobs:
     steps:
       - name: Clean-up
         run: |
-          sudo rm -rf /home/runner/artifacts/*
+          sudo rm -rf $HOME/runner/artifacts/*
 
 
 
