@@ -1,6 +1,8 @@
 # Use the official Alpine Linux as the base image
 FROM alpine:latest
 
+LABEL org.opencontainers.image.arch=arm
+
 # # Install curl package
 RUN apk add --no-cache curl
 
@@ -12,4 +14,4 @@ RUN apk add --no-cache curl
 #     rm -rf /var/lib/apt/lists/*
 
 #Define the command that will run when the container starts
-CMD ["echo", "Hello, World15.5!"]
+CMD ["echo", "Hello, World16!"]
