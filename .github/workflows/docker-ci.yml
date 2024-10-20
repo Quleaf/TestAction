@@ -105,9 +105,6 @@ jobs:
     needs: PREPARE-job
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-    # env:
-    #   BUCKET: pawsey0001-image-compilation
-    #   DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -151,19 +148,7 @@ jobs:
           sudo mv ${GITHUB_WORKSPACE}/image.tar /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar
           echo "Moved image.tar to /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar"
 
-      # - name: Setup rclone
-      #   uses: ./.github/actions/setup-rclone
-      #   with:
-      #     access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
-      #     secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
-      #     endpoint: https://projects.pawsey.org.au
-      #     bucket: ${{ env.BUCKET }}
-      #     destination_path: ${{ env.DESTINATION_PATH }}
 
-      # - name: Upload image tar to S3 with rclone
-      #   run: |
-      #     set -e
-      #     rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
 
   SCAN-AND-REPORT-job:
     needs: [BUILD-AND-PUSH-job, PREPARE-job]
@@ -219,6 +204,9 @@ jobs:
     needs: [SCAN-AND-REPORT-job, PREPARE-job]
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    env:
+     BUCKET: pawsey0001-image-compilation
+     DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
     environment:
       name: manual_approval
     steps:
@@ -228,22 +216,39 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
-  #     - name: Login to quay Container Registry
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: quay.io
-  #         username: ${{ vars.QUAYIO_USERNAME }}
-  #         password: ${{ secrets.QUAYIO_TOKEN }}
+      - name: Login to quay Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ vars.QUAYIO_USERNAME }}
+          password: ${{ secrets.QUAYIO_TOKEN }}
       
+      - name: Load Docker image from image.tar
+        run: |
+            docker load -i ${GITHUB_WORKSPACE}/image.tar
 
-  #     - name: Pull Docker image from Docker Hub
-  #       run: |
-  #         docker pull klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+      - name: Pull Docker image from Docker Hub
+        run: |
+          docker pull klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
-  #     - name: Tag Docker image for Quay.IO
-  #       run: |
-  #         docker tag klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+      - name: Tag Docker image for Quay.IO
+        run: |
+          docker tag klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
-  #     - name: Push Docker image to Quay.IO after approval
-  #       run: |
-  #         docker push quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+      - name: Push Docker image to Quay.IO after approval
+        run: |
+          docker push quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+
+      - name: Setup rclone
+        uses: ./.github/actions/setup-rclone
+        with:
+          access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
+          endpoint: https://projects.pawsey.org.au
+          bucket: ${{ env.BUCKET }}
+          destination_path: ${{ env.DESTINATION_PATH }}
+
+      - name: Upload image tar to S3 with rclone
+        run: |
+          set -e
+          rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
