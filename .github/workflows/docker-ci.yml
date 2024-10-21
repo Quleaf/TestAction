@@ -198,7 +198,7 @@ jobs:
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     env:
-     BUCKET: ${{ vars.ACACIA_BUCKETNAME }}
+     BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
     environment:
       name: manual_approval  
