@@ -14,7 +14,7 @@ ARG NCPUS=8
 
 LABEL org.opencontainers.image.arch=x86
 LABEL org.opencontainers.image.compilation=auto
-LABEL org.opencontainers.image.created="2023-02"
+LABEL org.opencontainers.image.created="2024-10"
 LABEL org.opencontainers.image.authors="Pascal Jahan Elahi <pascaljelahi@gmail.com>"
 LABEL org.opencontainers.image.documentation="https://github.com/"
 LABEL org.opencontainers.image.source="https://github.com/pelahi/docker-recipes/slurm-base/"
