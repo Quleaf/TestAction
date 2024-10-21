@@ -5,25 +5,44 @@ This GitHub Actions workflow automates the building, scanning, and deployment of
 ## Table of Contents
 ```mermaid
 graph TD
-    A[Push Event Trigger] --> B[Prepare Job]
+    A[Push Event Trigger] ---> B[Prepare Job]
     
+    B1>Single *.dockerfile?] -.-> B
+    B2>has specific labels? ] -.-> B
     B -->|proceed_valid=true| C[Build and Push Job]
     B -->|proceed_valid=false| F[End]
     
+    C1[Trivy] -.->D[Build and Push Job]
     C --> D[Scan and Report Job]
+   
     
     D --> E[Approve and Deploy Job]
-    
+     C3-.->|pull tar|E
+    E -.->H[dockerhub]
+    E -.->I[Quay.io]
+    E -.->J[Acacia S3]
+
     E --> G[Cleanup Job]
     
     C --> G
     D --> G    
 
+    subgraph local storage speed-up
+        C[Build and Push Job] -.-> |push tar|C3[(Local storage)]
+        C3-.->|pull tar|D[Scan and Report Job]
+
+    end
     
     %% Styling for clarity
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style F fill:#f66,stroke:#333,stroke-width:2px
     style G fill:#bbf,stroke:#333,stroke-width:2px
+    style B1 fill:#fff,stroke:#333,stroke-width:2px
+    style B2 fill:#fff,stroke:#333,stroke-width:2px
+    style C1 fill:#add8e6,stroke:#333,stroke-width:2px
+    style H fill:#add8e6,stroke:#333,stroke-width:2px
+    style I fill:#add8e6,stroke:#333,stroke-width:2px
+    style J fill:#add8e6,stroke:#333,stroke-width:2px
 ```
 
 - [Trigger Logic](#trigger-logic)
