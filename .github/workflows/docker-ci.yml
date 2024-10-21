@@ -180,7 +180,7 @@ jobs:
           output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          severity: 'MEDIUM,CRITICAL,HIGH'
       
       - name: Add Trivy report to GitHub Actions summary
         run: |
