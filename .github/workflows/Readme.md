@@ -18,15 +18,17 @@ graph TD
    
     
     D --> E[Approve and Deploy Job]
-     C3-.->|pull tar|E
+    C --> |Fail|G
+    D --> |Dissatisfied|G  
+    E --> |Disapprove|G[Cleanup Job]
+
+    C3-.->|pull tar|E
     E -.->H[dockerhub]
     E -.->I[Quay.io]
     E -.->J[Acacia S3]
-
-    E --> G[Cleanup Job]
     
-    C --> G
-    D --> G    
+    
+  
 
     subgraph local storage speed-up
         C[Build and Push Job] -.-> |push tar|C3[(Local storage)]
