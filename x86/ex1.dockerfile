@@ -15,4 +15,4 @@ RUN apk add --no-cache curl
 #     rm -rf /var/lib/apt/lists/*
 
 #Define the command that will run when the container starts
-CMD ["echo", "Hello, World18.1!"]
+CMD ["echo", "Hello, World18.2!"]
