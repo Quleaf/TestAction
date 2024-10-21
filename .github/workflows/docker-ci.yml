@@ -178,7 +178,6 @@ jobs:
           input: './image.tar'        
           format: 'table'
           output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
-          ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'MEDIUM,CRITICAL,HIGH'
       
