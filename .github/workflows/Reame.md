@@ -74,9 +74,12 @@ To configure the required variables, navigate to your repository's Settings > Se
 - `QUAYIO_TOKEN`: A Quay.io access token with permissions to push images.
 - `ACACIA_ACCESS_KEY_ID`: Access key ID for the S3-compatible storage.
 - `ACACIA_SECRET_ACCESS_KEY`: Secret access key for the S3-compatible storage.
-
 These variables and secrets are used throughout the workflow for authentication and tagging purposes.
 
+### Environments (`manual_approval`)
+The manual_approval environment is configured to require explicit manual approval before the deployment process proceeds. This ensures that all deployments are reviewed and authorized by designated team members, adding an additional layer of security and control to the CI pipeline.
+
+Navigate to your repository's Settings > Environments > New Environment > Name (`manual_approval`), then under Deployment protection rules, click (`Require reviewers`) and Save protection rules.
 ## Workflow Overview
 
 The workflow consists of several jobs that execute sequentially or in parallel, depending on their dependencies.
