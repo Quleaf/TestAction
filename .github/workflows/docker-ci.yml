@@ -176,7 +176,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           input: './image.tar'        
-          format: 'github'
+          format: 'sarif'
           output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
           severity: 'MEDIUM,CRITICAL,HIGH'
       
