@@ -14,6 +14,7 @@ graph TD
     
     C1[Trivy] -.->D[Build and Push Job]
     C --> D[Scan and Report Job]
+  
    
     
     D --> E[Approve and Deploy Job]
