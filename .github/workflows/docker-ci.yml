@@ -62,10 +62,7 @@ jobs:
           else
             echo "Dockerfile does not contain org.opencontainers.image.compilation=auto. Setting proceed_valid to false."
             echo "proceed_valid=false" >> $GITHUB_OUTPUT
-          fi
-        
-
-
+          fi    
 
       - name: Parse file path
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
@@ -162,7 +159,6 @@ jobs:
           echo "Moved image.tar to $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar"
 
 
-
   SCAN-AND-REPORT-job:
     needs: [BUILD-AND-PUSH-job, PREPARE-job]
     runs-on: work
@@ -172,7 +168,6 @@ jobs:
         run: |
           cp $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
           echo "Copied image.tar from $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
-
 
       - name: Create Trivy report directory
         run: mkdir -p ./trivy-reports
@@ -203,7 +198,7 @@ jobs:
     runs-on: work
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     env:
-     BUCKET: pawsey0001-image-compilation
+     BUCKET: ${{ vars.ACACIA_BUCKETNAME }}
      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
     environment:
       name: manual_approval  
