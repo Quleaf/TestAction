@@ -36,6 +36,8 @@ RUN dnf -y update && dnf install -y \
     bison \
     fuse-libs \
     perl \
+    libml \
+    ethtool\
     && dnf clean all
 
 # Install MLNX OFED (user-space only)
