@@ -18,7 +18,7 @@ RUN dnf -y update && dnf install -y \
     numactl-devel \
     hwloc \
     hwloc-devel \
-    lsb-release \
+    redhat-lsb-core \
     pciutils \
     rdma-core \
     rdma-core-devel \
@@ -31,7 +31,6 @@ RUN dnf -y update && dnf install -y \
     gcc-gfortran \
     libusb1 \
     kmod \
-    swig \
     pkgconfig \
     flex \
     tcl \
