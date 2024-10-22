@@ -119,6 +119,5 @@ ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH
 # Set working directory
 WORKDIR ${HPCX_HOME}
 
-
 # Optional: Set entrypoint to bash
 CMD ["/bin/bash"]
