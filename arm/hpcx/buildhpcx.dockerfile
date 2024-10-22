@@ -35,6 +35,7 @@ RUN dnf -y update && dnf install -y \
     tcl \
     bison \
     fuse-libs \
+    perl \
     && dnf clean all
 
 # Install MLNX OFED (user-space only)
