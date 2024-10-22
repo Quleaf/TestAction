@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM rockylinux:22.04
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
@@ -7,31 +7,42 @@ LABEL org.opencontainers.image.compilation=auto
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
+RUN dnf update && dnf install -y \
+    gcc \
+    gcc-c++ \
+    make \
     wget \
     tar \
     ca-certificates \
     numactl \
-    libnuma-dev \
-    libhwloc-dev \
-    gcc \
-    g++ \
-    make \
+    numactl-devel \
+    hwloc \
+    hwloc-devel \
     lsb-release \
     pciutils \
-    ibverbs-providers \
-    libibverbs-dev \
     rdma-core \
-    software-properties-common \
-    openssh-client\
-    chrpath libgfortran5 debhelper graphviz lsof tk gfortran libusb-1.0-0 kmod swig pkg-config flex tcl bison libfuse2 \
-    && rm -rf /var/lib/apt/lists/*
+    rdma-core-devel \
+    libibverbs-devel \  
+    openssh-clients \
+    chrpath \
+    graphviz \
+    lsof \
+    tk \
+    gcc-gfortran \
+    libusb1 \
+    kmod \
+    swig \
+    pkgconfig \
+    flex \
+    tcl \
+    bison \
+    fuse-libs \
+    && dnf clean all
 
 # Install MLNX OFED (user-space only)
 # Set MLNX OFED version and download URL
 ENV MLNX_OFED_VERSION=23.10-3.2.2.0
-ENV MLNX_OFED_PACKAGE=MLNX_OFED_LINUX-${MLNX_OFED_VERSION}-ubuntu22.04-aarch64.tgz
+ENV MLNX_OFED_PACKAGE=MLNX_OFED_LINUX-${MLNX_OFED_VERSION}-rhel9.4-aarch64.tgz
 ENV MLNX_OFED_DOWNLOAD_URL=https://content.mellanox.com/ofed/MLNX_OFED-${MLNX_OFED_VERSION}/${MLNX_OFED_PACKAGE}
 
 # Download and extract MLNX OFED
@@ -42,7 +53,7 @@ RUN mkdir -p /tmp/MLNX_OFED && \
     rm ${MLNX_OFED_PACKAGE}
 
 # Install MLNX OFED user-space components
-RUN cd /tmp/MLNX_OFED/MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-aarch64 && \
+RUN cd /tmp/MLNX_OFED/MLNX_OFED_LINUX-${MLNX_OFED_VERSION}-rhel9.4-aarch64 && \
     ./mlnxofedinstall --user-space-only --without-fw-update --all --force
 
 # # Clean up MLNX OFED installation files
@@ -50,11 +61,10 @@ RUN rm -rf /tmp/MLNX_OFED
 
 # # Install CUDA 12.6
 # # Add NVIDIA's package repository and install CUDA Toolkit 12.6
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb && \
-    dpkg -i cuda-keyring_1.1-1_all.deb && \   
-    apt-get update && \
-    apt-get install -y cuda-toolkit-12-6 && \
-    rm -rf /var/lib/apt/lists/*
+RUN dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/sbsa/cuda-rhel9.repo && \
+    dnf clean all && \   
+    dnf -y install cuda-toolkit-12-6 && \
+    dnf clean all
 
 # # Set CUDA environment variables
 ENV CUDA_HOME=/usr/local/cuda-12.6
@@ -63,7 +73,7 @@ ENV PATH=${CUDA_HOME}/bin:$PATH
 
 # # Set the HPC-X version and download URL
 ENV HPCX_VERSION=v2.20
-ENV HPCX_PACKAGE=hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64.tbz
+ENV HPCX_PACKAGE=hpcx-v2.20-gcc-mlnx_ofed-redhat9-cuda12-aarch64.tbz
 ENV HPCX_DOWNLOAD_URL=https://content.mellanox.com/hpc/hpc-x/${HPCX_VERSION}/${HPCX_PACKAGE}
 
 # # Download and extract HPC-X
@@ -72,7 +82,7 @@ RUN mkdir -p /opt && \
     wget ${HPCX_DOWNLOAD_URL} && \
     tar -xvf $(basename ${HPCX_DOWNLOAD_URL}) && \
     rm $(basename ${HPCX_DOWNLOAD_URL}) && \
-    mv hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64 hpcx &&\
+    mv hpcx-v2.20-gcc-mlnx_ofed-redhat9-cuda12-aarch64 hpcx &&\
     chmod o+w hpcx
 
 # Set HPCX_HOME
