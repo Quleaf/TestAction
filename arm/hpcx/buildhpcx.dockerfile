@@ -73,7 +73,7 @@ RUN mkdir -p /opt && \
     tar -xvf $(basename ${HPCX_DOWNLOAD_URL}) && \
     rm $(basename ${HPCX_DOWNLOAD_URL}) && \
     mv hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64 hpcx &&\
-    cmod o+w hpcx
+    chmod o+w hpcx
 
 # Set HPCX_HOME
 ENV HPCX_HOME=/opt/hpcx
