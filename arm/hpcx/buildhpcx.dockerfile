@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.compilation=auto
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
-RUN dnf update && dnf install -y \
+RUN dnf -y update && dnf install -y \
     gcc \
     gcc-c++ \
     make \
