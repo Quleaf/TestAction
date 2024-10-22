@@ -76,48 +76,52 @@ RUN mkdir -p /opt && \
     chmod o+w hpcx
 
 # Set HPCX_HOME
-ENV HPCX_HOME=/opt/hpcx
+# ENV HPCX_HOME=/opt/hpcx
 
 # Set environment variables (adjusted to match your host configuration)
-ENV HPCX_DIR=${HPCX_HOME} \
-    HPCX_HOME=${HPCX_HOME} \
-    HPCX_UCX_DIR=${HPCX_HOME}/ucx \
-    HPCX_UCC_DIR=${HPCX_HOME}/ucc \
-    HPCX_SHARP_DIR=${HPCX_HOME}/sharp \
-    HPCX_HCOLL_DIR=${HPCX_HOME}/hcoll \
-    HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR=${HPCX_HOME}/nccl_rdma_sharp_plugin \
-    HPCX_MPI_DIR=${HPCX_HOME}/ompi \
-    HPCX_OSHMEM_DIR=${HPCX_HOME}/ompi \
-    HPCX_MPI_TESTS_DIR=${HPCX_HOME}/ompi/tests \
-    HPCX_OSU_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks \
-    HPCX_OSU_CUDA_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks-cuda \
-    OPAL_PREFIX=${HPCX_HOME}/ompi \
-    PMIX_INSTALL_PREFIX=${HPCX_HOME}/ompi \
-    OMPI_HOME=${HPCX_HOME}/ompi \
-    MPI_HOME=${HPCX_HOME}/ompi \
-    OSHMEM_HOME=${HPCX_HOME}/ompi \
-    SHMEM_HOME=${HPCX_HOME}/ompi
+# ENV HPCX_DIR=${HPCX_HOME} \
+#     HPCX_HOME=${HPCX_HOME} \
+#     HPCX_UCX_DIR=${HPCX_HOME}/ucx \
+#     HPCX_UCC_DIR=${HPCX_HOME}/ucc \
+#     HPCX_SHARP_DIR=${HPCX_HOME}/sharp \
+#     HPCX_HCOLL_DIR=${HPCX_HOME}/hcoll \
+#     HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR=${HPCX_HOME}/nccl_rdma_sharp_plugin \
+#     HPCX_MPI_DIR=${HPCX_HOME}/ompi \
+#     HPCX_OSHMEM_DIR=${HPCX_HOME}/ompi \
+#     HPCX_MPI_TESTS_DIR=${HPCX_HOME}/ompi/tests \
+#     HPCX_OSU_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks \
+#     HPCX_OSU_CUDA_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks-cuda \
+#     OPAL_PREFIX=${HPCX_HOME}/ompi \
+#     # Del it later
+#     PMIX_INSTALL_PREFIX=${HPCX_HOME}/ompi \  
+#     OMPI_HOME=${HPCX_HOME}/ompi \
+#     MPI_HOME=${HPCX_HOME}/ompi \
+#     OSHMEM_HOME=${HPCX_HOME}/ompi \
+#     SHMEM_HOME=${HPCX_HOME}/ompi
 
 # Update PATH
-ENV PATH=${HPCX_UCX_DIR}/bin:${HPCX_UCC_DIR}/bin:${HPCX_HCOLL_DIR}/bin:${HPCX_SHARP_DIR}/bin:${HPCX_MPI_TESTS_DIR}/imb:${HPCX_HOME}/clusterkit/bin:${HPCX_MPI_DIR}/bin:$PATH
+# ENV PATH=${HPCX_UCX_DIR}/bin:${HPCX_UCC_DIR}/bin:${HPCX_HCOLL_DIR}/bin:${HPCX_SHARP_DIR}/bin:${HPCX_MPI_TESTS_DIR}/imb:${HPCX_HOME}/clusterkit/bin:${HPCX_MPI_DIR}/bin:$PATH
 
-# Update LD_LIBRARY_PATH
-ENV LD_LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/lib:${HPCX_UCC_DIR}/lib/ucc:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:${HPCX_MPI_DIR}/lib:$LD_LIBRARY_PATH
+# # Update LD_LIBRARY_PATH
+# ENV LD_LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/lib:${HPCX_UCC_DIR}/lib/ucc:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:${HPCX_MPI_DIR}/lib:$LD_LIBRARY_PATH
 
-# Update LIBRARY_PATH
-ENV LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCC_DIR}/lib:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:$LIBRARY_PATH
+# # Update LIBRARY_PATH
+# ENV LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCC_DIR}/lib:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:$LIBRARY_PATH
 
-# Update CPATH
-ENV CPATH=${HPCX_HCOLL_DIR}/include:${HPCX_SHARP_DIR}/include:${HPCX_UCX_DIR}/include:${HPCX_UCC_DIR}/include:${HPCX_MPI_DIR}/include:$CPATH
+# # Update CPATH
+# ENV CPATH=${HPCX_HCOLL_DIR}/include:${HPCX_SHARP_DIR}/include:${HPCX_UCX_DIR}/include:${HPCX_UCC_DIR}/include:${HPCX_MPI_DIR}/include:$CPATH
 
-# Update PKG_CONFIG_PATH
-ENV PKG_CONFIG_PATH=${HPCX_HCOLL_DIR}/lib/pkgconfig:${HPCX_SHARP_DIR}/lib/pkgconfig:${HPCX_UCX_DIR}/lib/pkgconfig:${HPCX_MPI_DIR}/lib/pkgconfig:$PKG_CONFIG_PATH
+# # Update PKG_CONFIG_PATH
+# ENV PKG_CONFIG_PATH=${HPCX_HCOLL_DIR}/lib/pkgconfig:${HPCX_SHARP_DIR}/lib/pkgconfig:${HPCX_UCX_DIR}/lib/pkgconfig:${HPCX_MPI_DIR}/lib/pkgconfig:$PKG_CONFIG_PATH
 
-# Update MANPATH
-ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH
+# # Update MANPATH
+# ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH
 
-# Set working directory
-WORKDIR ${HPCX_HOME}
+# # Set working directory
+# WORKDIR ${HPCX_HOME}
+
+# # Compile the hello world example to verify installation
+# RUN mpicc ${HPCX_MPI_TESTS_DIR}/examples/hello_c.c -o ${HPCX_MPI_TESTS_DIR}/examples/hello_c
 
 # Optional: Set entrypoint to bash
 CMD ["/bin/bash"]
