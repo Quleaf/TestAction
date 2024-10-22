@@ -1,4 +1,4 @@
-FROM rockylinux:22.04
+FROM rockylinux/rockylinux:9.4
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
