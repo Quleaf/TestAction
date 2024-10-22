@@ -119,8 +119,6 @@ ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH
 # Set working directory
 WORKDIR ${HPCX_HOME}
 
-# Compile the hello world example to verify installation
-RUN mpicc ${HPCX_MPI_TESTS_DIR}/examples/hello_c.c -o ${HPCX_MPI_TESTS_DIR}/examples/hello_c
 
 # Optional: Set entrypoint to bash
 CMD ["/bin/bash"]
