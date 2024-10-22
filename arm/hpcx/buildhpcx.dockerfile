@@ -18,7 +18,6 @@ RUN dnf -y update && dnf install -y \
     numactl-devel \
     hwloc \
     hwloc-devel \
-    redhat-lsb-core \
     pciutils \
     rdma-core \
     rdma-core-devel \
