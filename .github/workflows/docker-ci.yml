@@ -161,7 +161,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            let runner_label = 'x86';
+            let runner_label = 'X64';
             const platform = '${{ steps.parse_path.outputs.platform }}';
             if (platform === 'linux/arm64') {
               const runners = await github.paginate(
@@ -175,17 +175,17 @@ jobs:
               for (const runner of runners) {
                 if (runner.status === 'online') {
                   const labels = runner.labels.map(label => label.name);
-                  if (labels.includes('arm')) {
-                    runner_label = 'arm';
+                  if (labels.includes('ARM')) {
+                    runner_label = 'ARM';
                     found = true;
                     break;
                   }
                 }
               }
               if (found) {
-                console.log('Found online runner with label "arm"');
+                console.log('Found online runner with label "ARM"');
               } else {
-                console.log('No online runner with label "arm" found');
+                console.log('No online runner with label "ARM" found');
               }
             } else {
               console.log('Platform is not linux/arm64, using default runner');
