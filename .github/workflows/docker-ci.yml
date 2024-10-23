@@ -198,7 +198,7 @@ jobs:
             echo "Cache directory created."
           fi
           echo "CACHELOC=$CACHE_DIR" >> $GITHUB_ENV
-          echo "CACHELOC is set to ${{ env.CACHELOC }}"           
+          echo "CACHELOC is set to ${CACHE_DIR} .           
 
       - name: Build Docker image locally, save to tar file and move to persistent storage
         uses: docker/build-push-action@v6
