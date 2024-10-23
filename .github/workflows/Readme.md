@@ -77,7 +77,7 @@ If these conditions are not met, the workflow exits gracefully without performin
 - **Docker Hub Account**: Required for pushing Docker images to Docker Hub.
 - **Quay.io Account**: An alternative container registry for hosting Docker images.
 - **Access to S3-Compatible Storage**: For uploading Docker image archives to Acacia (Pawsey) using `rclone`.
-- **Self-Hosted Runner**: The workflow specifies `runs-on: work`, indicating the use of a self-hosted runner named `work` (You can use your other BYO runner).
+- **Self-Hosted Runner**: The workflow specifies `runs-on: gamma`, indicating the use of a self-hosted runner named `work` (You can use your other BYO runner).
 
 ## Variables and Secrets Configuration
 
