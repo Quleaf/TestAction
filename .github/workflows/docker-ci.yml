@@ -5,7 +5,7 @@ on:
 
 jobs:
   PREPARE-job:
-    runs-on: experiment
+    runs-on: ubuntu-latest
     outputs:
       dockerfile_name: ${{ steps.parse_path.outputs.dockerfile_name }}
       platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
@@ -14,6 +14,7 @@ jobs:
       directory: ${{ steps.parse_path.outputs.directory }}
       files: ${{ steps.changed_files.outputs.files }}
       platform: ${{ steps.parse_path.outputs.platform }}
+      runner_label: ${{ steps.determine_runner.outputs.runner_label }}
     
     steps:
       - name: Check required variables and secrets
@@ -152,6 +153,44 @@ jobs:
           date_tag=$(date +'%m-%d')
           echo "Date tag: $date_tag"
           echo "date=$date_tag" >> $GITHUB_OUTPUT
+      
+      - name: Determine runner label
+        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
+        id: determine_runner
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            let runner_label = 'x86';
+            const platform = '${{ steps.parse_path.outputs.platform }}';
+            if (platform === 'linux/arm64') {
+              const runners = await github.paginate(
+                github.rest.actions.listSelfHostedRunnersForRepo,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                }
+              );
+              let found = false;
+              for (const runner of runners) {
+                if (runner.status === 'online') {
+                  const labels = runner.labels.map(label => label.name);
+                  if (labels.includes('arm')) {
+                    runner_label = 'arm';
+                    found = true;
+                    break;
+                  }
+                }
+              }
+              if (found) {
+                console.log('Found online runner with label "arm"');
+              } else {
+                console.log('No online runner with label "arm" found');
+              }
+            } else {
+              console.log('Platform is not linux/arm64, using default runner');
+            }
+            core.setOutput('runner_label', runner_label);
 
       - name: Debug variables before build
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
@@ -160,12 +199,18 @@ jobs:
           echo "File: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}"
           echo "Tag: ${{ vars.DOCKERHUB_USERNAME }}/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}"
           echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
-  
+          echo "Runner label: ${{ steps.determine_runner.outputs.runner_label }}"
+      
   BUILD-AND-PUSH-job:
     needs: PREPARE-job
-    runs-on: experiment
+    runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
@@ -231,7 +276,7 @@ jobs:
 
   SCAN-AND-REPORT-job:
     needs: [BUILD-AND-PUSH-job, PREPARE-job]
-    runs-on: experiment
+    runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
       - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory
@@ -263,7 +308,7 @@ jobs:
 
   APPROVE-AND-DEPLOY-job:
     needs: [BUILD-AND-PUSH-job, PREPARE-job]
-    runs-on: experiment
+    runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     env:
      BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
@@ -319,7 +364,7 @@ jobs:
   CLEANUP-job:
     needs: [APPROVE-AND-DEPLOY-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
     if: always()
-    runs-on: experiment
+    runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     steps:
       - name: Clean-up
         run: |
