@@ -5,7 +5,7 @@ on:
 
 jobs:
   PREPARE-job:
-    runs-on: work
+    runs-on: gamma
     outputs:
       dockerfile_name: ${{ steps.parse_path.outputs.dockerfile_name }}
       platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
@@ -163,7 +163,7 @@ jobs:
   
   BUILD-AND-PUSH-job:
     needs: PREPARE-job
-    runs-on: work
+    runs-on: gamma
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
       - name: Set up QEMU
@@ -211,7 +211,7 @@ jobs:
 
   SCAN-AND-REPORT-job:
     needs: [BUILD-AND-PUSH-job, PREPARE-job]
-    runs-on: work
+    runs-on: gamma
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
       - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory
@@ -243,7 +243,7 @@ jobs:
 
   APPROVE-AND-DEPLOY-job:
     needs: [BUILD-AND-PUSH-job,SCAN-AND-REPORT-job, PREPARE-job]
-    runs-on: work
+    runs-on: gamma
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     env:
      BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
@@ -299,7 +299,7 @@ jobs:
   CLEANUP-job:
     needs: [APPROVE-AND-DEPLOY-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
     if: always()
-    runs-on: work
+    runs-on: gamma
     steps:
       - name: Clean-up
         run: |
@@ -310,7 +310,7 @@ jobs:
 
   # APPROVE-AND-DEPLOY-job:
   #   needs: [SCAN-AND-REPORT-job, PREPARE-job]
-  #   runs-on: work
+  #   runs-on: gamma
   #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
   #   strategy:
   #     matrix:
