@@ -2,6 +2,7 @@ FROM rockylinux/rockylinux:9.4
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
+LABEL org.opencontainers.image.author="Shusen Liu"
 
 # Set noninteractive mode for apt
 ENV DEBIAN_FRONTEND=noninteractive
