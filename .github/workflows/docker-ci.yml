@@ -181,7 +181,23 @@ jobs:
         run: docker buildx ls
 
       - name: Enable BuildKit
-        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV            
+        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV 
+
+      - name: Check and set docker cache location
+        id: docker_cache_check
+        run: |
+          CACHE_DIR="$HOME/runner/docker-cache"
+          if [ -d "$CACHE_DIR" ]; then
+            echo "Cache directory exists."
+            CACHE_SIZE=$(du -sh "$CACHE_DIR" | cut -f1)
+            echo "Cache directory size: $CACHE_SIZE"
+          else
+            echo "Cache directory does not exist. Creating..."
+            sudo mkdir -p "$CACHE_DIR"
+            sudo chown $USER:$USER "$CACHE_DIR"
+            echo "Cache directory created."
+          fi
+          echo "CACHELOC=$CACHE_DIR" >> $GITHUB_ENV           
 
       - name: Build Docker image locally, save to tar file and move to persistent storage
         uses: docker/build-push-action@v6
@@ -194,8 +210,10 @@ jobs:
           push: false
           load: true
           provenance: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=local,src=$CACHELOC
+          cache-to: type=local,dest=$CACHELOC,mode=max
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
 
       - name: Save Docker image to tar file
         run: |
@@ -205,7 +223,8 @@ jobs:
       - name: Move image.tar to local persistent storage "$HOME/runner/artifacts"
         run: |
           sudo mkdir -p $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
-          sudo mv ${GITHUB_WORKSPACE}/image.tar $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar
+          sudo chown $USER:$USER $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
+          mv ${GITHUB_WORKSPACE}/image.tar $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar
           echo "Moved image.tar to $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar"
 
 
