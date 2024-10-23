@@ -38,6 +38,7 @@ RUN dnf -y update && dnf install -y \
     perl \
     libmnl \
     ethtool\
+    dnf-plugins-core \
     && dnf clean all
 
 # Install MLNX OFED (user-space only)
