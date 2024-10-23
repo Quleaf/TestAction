@@ -39,6 +39,7 @@ RUN dnf -y update && dnf install -y \
     libmnl \
     ethtool\
     dnf-plugins-core \
+    bzip2 \
     && dnf clean all
 
 # Install MLNX OFED (user-space only)
