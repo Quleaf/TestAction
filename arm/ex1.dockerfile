@@ -5,4 +5,4 @@ FROM alpine:latest
 RUN apk add --no-cache curl
 
 # Define the command that will run when the container starts
-CMD ["echo", "Hello, World18!"]
+CMD ["echo", "Hello, World18.2!"]
