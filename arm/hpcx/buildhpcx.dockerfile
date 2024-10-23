@@ -36,7 +36,7 @@ RUN dnf -y update && dnf install -y \
     bison \
     fuse-libs \
     perl \
-    libml \
+    libmnl \
     ethtool\
     && dnf clean all
 
