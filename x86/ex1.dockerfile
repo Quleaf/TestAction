@@ -15,4 +15,4 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 #Define the command that will run when the container starts
-CMD ["echo", "Hello, World18.6!"]
+CMD ["echo", "Hello, World18.5!"]
