@@ -175,12 +175,21 @@ jobs:
                   repo: context.repo.repo,
                 }
               );
+
+              console.log(`Total runners found: ${runners.length}`);
+
+              runners.forEach(runner => {
+              const labels = runner.labels.map(label => label.name);
+              console.log(`Runner ID: ${runner.id}, Name: ${runner.name}, Status: ${runner.status}, Labels: ${labels.join(', ')}`);
+              });
+
               let found = false;
               for (const runner of runners) {
                 if (runner.status === 'online') {
                   const labels = runner.labels.map(label => label.name);
                   if (labels.includes('ARM')) {
                     runner_label = 'ARM';
+                    console.log(`Found online runner with label "ARM": Runner ID ${runner.id}, Name ${runner.name}`);
                     found = true;
                     break;
                   }
