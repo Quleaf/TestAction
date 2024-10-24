@@ -45,7 +45,7 @@ runs:
     - name: Configure rclone
       shell: bash
       run: |
-        mkdir -p ~/.config/rclone
+        sudo mkdir -p ~/.config/rclone
         cat <<EOF > ~/.config/rclone/rclone.conf
         [pawsey0001]
         type = s3
