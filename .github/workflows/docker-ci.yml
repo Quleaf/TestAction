@@ -203,7 +203,7 @@ jobs:
             } else {
               console.log('Platform is not linux/arm64, using default runner');
             }
-            core.setOutput('runner_label_matched', runner_label);
+            core.setOutput('runner_label', runner_label);
 
       - name: Debug variables before build
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'

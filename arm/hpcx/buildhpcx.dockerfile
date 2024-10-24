@@ -4,6 +4,7 @@ LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.email="shusen.liu@pawsey.org.au|shusen.liu@csiro.au"
+LABEL org.opencontainers.image.version="25-10-2024"
 
 # Set noninteractive mode for apt
 ENV DEBIAN_FRONTEND=noninteractive
