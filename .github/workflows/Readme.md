@@ -78,7 +78,7 @@ If these conditions are not met, the workflow exits gracefully without performin
 - **Quay.io Account**: An alternative container registry for hosting Docker images.
 - **Access to S3-Compatible Storage**: For uploading Docker image archives to Acacia (Pawsey) using `rclone`.
 - **Self-Hosted Runner**: The workflow specifies `runs-on: experiment`, indicating the use of a self-hosted runner named `work` (You can use your other BYO runner).
-
+- **PAT Token**: PAT token is used for checking the runner label and their availability. 
 ## Variables and Secrets Configuration
 
 The workflow requires certain variables and secrets to be set in your repository settings:
@@ -96,6 +96,7 @@ To configure the required variables, navigate to your repository's Settings > Se
 - `QUAYIO_TOKEN`: A Quay.io access token with permissions to push images.
 - `ACACIA_ACCESS_KEY_ID`: Access key ID for the S3-compatible storage.
 - `ACACIA_SECRET_ACCESS_KEY`: Secret access key for the S3-compatible storage.
+- `PAT_TOKEN`: PAT token is used for checking the runner label and their availability. 
 These variables and secrets are used throughout the workflow for authentication and tagging purposes.
 
 ### Environments (`manual_approval`)

@@ -37,6 +37,10 @@ jobs:
           fi
 
           # check Secrets
+          if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
+            missing_secrets+=("PAT_TOKEN")
+          fi
+
           if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
             missing_secrets+=("DOCKERHUB_TOKEN")
           fi

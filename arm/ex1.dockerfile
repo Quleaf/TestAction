@@ -8,4 +8,4 @@ LABEL org.opencontainers.image.compilation=auto
 RUN apk add --no-cache curl
 
 # Define the command that will run when the container starts
-CMD ["echo", "Hello, World18.5!"]
+CMD ["echo", "Hello, World18.6!"]
