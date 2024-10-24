@@ -282,7 +282,7 @@ jobs:
       - name: Move image.tar to local persistent storage "$HOME/runner/artifacts"
         run: |
           sudo mkdir -p $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
-          sudo chown -R $USER:$USER $HOME/runner/artifacts/
+          sudo chown -R $(whoami):$(id -gn) $HOME/runner/artifacts/
           mv ${GITHUB_WORKSPACE}/image.tar $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar
           echo "Moved image.tar to $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar"
 
