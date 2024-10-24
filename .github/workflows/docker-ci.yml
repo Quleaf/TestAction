@@ -159,7 +159,7 @@ jobs:
         id: determine_runner
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{secrets.PAT_TOKEN}}
           script: |
             let runner_label = 'X64';
             const platform = '${{ steps.parse_path.outputs.platform }}';
