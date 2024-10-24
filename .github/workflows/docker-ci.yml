@@ -252,7 +252,7 @@ jobs:
           else
             echo "Cache directory does not exist. Creating..."
             sudo mkdir -p "$CACHE_DIR"
-            sudo chown $USER:$USER "$CACHE_DIR"
+            sudo chown $(whoami):$(id -gn) "$CACHE_DIR"
             echo "Cache directory created."
           fi
           echo "CACHELOC=$CACHE_DIR" >> $GITHUB_ENV
