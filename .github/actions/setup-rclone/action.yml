@@ -46,7 +46,7 @@ runs:
       shell: bash
       run: |
         sudo mkdir -p ~/.config/rclone
-        cat <<EOF > ~/.config/rclone/rclone.conf
+        sudo tee ~/.config/rclone/rclone.conf > /dev/null <<EOF
         [pawsey0001]
         type = s3
         provider = Ceph
