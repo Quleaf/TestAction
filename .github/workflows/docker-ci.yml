@@ -228,6 +228,9 @@ jobs:
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
+      - name: Print hostname
+        run: |
+          echo "Hostname: $(hostname)"
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -248,7 +251,9 @@ jobs:
         run: docker buildx ls
 
       - name: Enable BuildKit
-        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV 
+        run: |
+          echo ${{ needs.PREPARE-job.outputs.runner_label}} 
+          echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV 
 
       - name: Check and set docker cache location
         id: docker_cache_check
@@ -266,7 +271,7 @@ jobs:
             sudo chown $(whoami):$(id -gn) "$CACHE_DIR"
             echo "Cache directory created."
           fi
-          
+
           echo "HOME=$HOME"
           echo "CACHELOC=$CACHE_DIR" >> $GITHUB_ENV
           echo "CACHELOC is set to ${CACHE_DIR} ".           
@@ -305,6 +310,9 @@ jobs:
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     steps:
+      - name: Print hostname
+        run: |
+          echo "Hostname: $(hostname)"
       - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory 
         run: |
           if [ -f "$HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar" ]; then
@@ -345,6 +353,9 @@ jobs:
     environment:
       name: manual_approval  
     steps:
+      - name: Print hostname
+        run: |
+          echo "Hostname: $(hostname)"
       - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory in case of running before scan
         run: |
           if [ -f "$HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar" ]; then
