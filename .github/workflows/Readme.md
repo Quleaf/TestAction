@@ -30,7 +30,6 @@ graph TD
     
     
   
-
     subgraph local storage speed-up
         C[Build and Push Job] -.-> |push tar|C3[(Local storage)]
         C3-.->|pull tar|D[Scan and Report Job]
