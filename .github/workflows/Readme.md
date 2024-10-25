@@ -9,6 +9,7 @@ graph TD
     
     B1>Single *.dockerfile?] -.-> B
     B2>has specific labels? ] -.-> B
+    B3>Which runner?] -.-> B
     B -->|proceed_valid=true| C[Build and Push Job]
     B -->|proceed_valid=false| F[End]
     
@@ -42,6 +43,7 @@ graph TD
     style G fill:#bbf,stroke:#333,stroke-width:2px
     style B1 fill:#fff,stroke:#333,stroke-width:2px
     style B2 fill:#fff,stroke:#333,stroke-width:2px
+    style B3 fill:#fff,stroke:#333,stroke-width:2px
     style C1 fill:#add8e6,stroke:#333,stroke-width:2px
     style H fill:#add8e6,stroke:#333,stroke-width:2px
     style I fill:#add8e6,stroke:#333,stroke-width:2px
@@ -49,6 +51,7 @@ graph TD
 ```
 
 - [Trigger Logic](#trigger-logic)
+- [Runner Logic](#runner-logic)
 - [Prerequisites](#prerequisites)
 - [Variables and Secrets Configuration](#variables-and-secrets-configuration)
 - [Workflow Overview](#workflow-overview)
@@ -72,8 +75,31 @@ The workflow is triggered on every `push` event to the repository. However, it o
 
 If these conditions are not met, the workflow exits gracefully without performing any further actions. This ensures that builds are only triggered for intentional and specific changes.
 
-## Prerequisites
+## Runner logic
+The "Determine Runner Label" step selects the appropriate runner for building the project based on the required architecture and runner availability. 
+- If an **ARM compilation is required** (`LABEL org.opencontainers.image.arch=arm`) and an **ARM-architecure runner is online**, it uses the ARM runner for the build. 
+- Otherwise, it defaults to using the `X64` architecture with `Buildx`(`X64` or `ARM`). 
 
+```mermaid
+flowchart TD
+    Start([Start])
+    CheckARMComp[Is ARM compilation required?]
+    CheckARMRunner[Is an ARM runner **online**?]
+    UseARM[Use ARM runner for build]
+    UseX64[Use X64 architecture with Buildx]
+    End([End])
+
+    Start --> CheckARMComp
+    CheckARMComp -- Yes --> CheckARMRunner
+        CheckARMRunner -- No --> UseX64
+    CheckARMComp -- No --> UseX64
+    CheckARMRunner --Yes-->UseARM
+    UseARM --> End
+    UseX64 --> End
+```
+
+## Prerequisites
+- **Uplift your current account to sudo group (admin group for Mac)** : As this script use local storage (save image to local path) which beyonds the Github workspace scope, you need to upgrade `$(whoami)` to sudo group and also set no PASSWORD are required for this group.
 - **Docker Hub Account**: Required for pushing Docker images to Docker Hub.
 - **Quay.io Account**: An alternative container registry for hosting Docker images.
 - **Access to S3-Compatible Storage**: For uploading Docker image archives to Acacia (Pawsey) using `rclone`.
