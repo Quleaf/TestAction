@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
-LABEL maintainer="Shusen"
+LABEL org.opencontainers.image.author="Shusen Liu"
 
 ENV NVARCH="sbsa"
 ENV NVIDIA_REQUIRE_CUDA="cuda>=12.5"

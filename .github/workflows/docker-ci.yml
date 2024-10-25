@@ -81,7 +81,10 @@ jobs:
         run: |
           files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} '*.dockerfile')
           echo "Files changed: $files"
-          echo "files=$files" >> $GITHUB_OUTPUT
+          echo "files=$files" 
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$files" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
 
       - name: Debug output of changed files
@@ -95,7 +98,7 @@ jobs:
           changed_files="${{ steps.changed_files.outputs.files }}"
           
           # Count files of modified Dockerfile 
-          file_count=$(echo "$changed_files" | wc -w)
+          file_count=$(echo "$changed_files" | wc -l)
           if [ "$file_count" -eq 0 ]; then
             echo "No Dockerfile has been modified. Setting proceed_valid to false."
             echo "proceed_valid=false" >> $GITHUB_OUTPUT
