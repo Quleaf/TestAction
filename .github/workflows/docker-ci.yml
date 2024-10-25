@@ -14,7 +14,7 @@ jobs:
       directory: ${{ steps.parse_path.outputs.directory }}
       files: ${{ steps.changed_files.outputs.files }}
       platform: ${{ steps.parse_path.outputs.platform }}
-      runner_label: ${{ steps.set_default_runner_label.outputs.runner_label }}
+      runner_label: ${{ steps.set_runner_label.outputs.runner_label }}
     
     steps:
       - name: Set default runner label
@@ -210,9 +210,18 @@ jobs:
                 console.log('No online runner with label "ARM64" found, using default runner');
               }
             } else {
-              console.log('Platform is not linux/arm64, using default runner');
+              console.log('Platform is not linux/arm64, using default X64 runner');
             }
             core.setOutput('runner_label', runner_label);
+
+      - name: Overwrite runner label
+        id: set_runner_label
+        run: |
+          if [ -n "${{ steps.determine_runner.outputs.runner_label }}" ]; then
+            echo "runner_label=${{ steps.determine_runner.outputs.runner_label }}" >> $GITHUB_OUTPUT
+          else
+            echo "runner_label=${{ steps.set_default_runner_label.outputs.runner_label }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Debug variables before build
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
