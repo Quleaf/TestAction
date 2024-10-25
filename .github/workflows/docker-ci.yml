@@ -399,7 +399,7 @@ jobs:
               --multi-thread-streams=4   
 
   CLEANUP-job:
-    needs: [APPROVE-AND-DEPLOY-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job]
+    needs: [APPROVE-AND-DEPLOY-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
     if: always()
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     steps:

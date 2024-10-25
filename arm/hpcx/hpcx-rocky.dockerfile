@@ -5,7 +5,7 @@ LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.email="shusen.liu@pawsey.org.au|shusen.liu@csiro.au"
 LABEL org.opencontainers.image.version="25-10-2024"
-LABEL org.opencontainers.image.minversion="0.0.5"
+LABEL org.opencontainers.image.minversion="0.0.1"
 
 
 # Set noninteractive mode for apt
