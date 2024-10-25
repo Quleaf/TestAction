@@ -254,6 +254,8 @@ jobs:
         id: docker_cache_check
         run: |
           CACHE_DIR="$HOME/runner/docker-cache"
+          echo "CACHE_DIR=$CACHE_DIR"
+
           if [ -d "$CACHE_DIR" ]; then
             echo "Cache directory exists."
             CACHE_SIZE=$(du -sh "$CACHE_DIR" | cut -f1)
@@ -264,6 +266,8 @@ jobs:
             sudo chown $(whoami):$(id -gn) "$CACHE_DIR"
             echo "Cache directory created."
           fi
+          
+          echo "HOME=$HOME"
           echo "CACHELOC=$CACHE_DIR" >> $GITHUB_ENV
           echo "CACHELOC is set to ${CACHE_DIR} ".           
 
