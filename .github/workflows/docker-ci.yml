@@ -14,10 +14,15 @@ jobs:
       directory: ${{ steps.parse_path.outputs.directory }}
       files: ${{ steps.changed_files.outputs.files }}
       platform: ${{ steps.parse_path.outputs.platform }}
-      runner_label: ${{ steps.determine_runner.outputs.runner_label }}
+      runner_label: ${{ steps.set_default_runner_label.outputs.runner_label }}
     
     steps:
-      - name: Check required variables and secrets
+      - name: Set default runner label
+        id: set_default_runner_label
+        run: |
+          echo "runner_label=ubuntu-latest" >> $GITHUB_OUTPUT
+
+      - name: Check required variables and secrets and set runner-default
         id: check_vars_secrets
         run: |
           missing_vars=()
@@ -70,6 +75,7 @@ jobs:
           else
             echo "All required variables and secrets are set."
           fi
+
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -390,20 +396,10 @@ jobs:
           rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"\
               --transfers=16 \
               --drive-chunk-size=128M \
-              --multi-thread-streams=4 
-  
-  CLEANUP-Github-job:
-    needs: [PREPARE-job]
-    if: ${{ needs.PREPARE-job.result != 'success' }}
-    runs-on: latest
-    steps:
-      - name: Clean-up
-        run: |
-          rm -rf ${{ github.workspace }}
+              --multi-thread-streams=4   
 
-
-  CLEANUP-RUNNER-job:
-    needs: [APPROVE-AND-DEPLOY-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
+  CLEANUP-job:
+    needs: [APPROVE-AND-DEPLOY-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job]
     if: always()
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     steps:
