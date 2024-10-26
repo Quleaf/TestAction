@@ -85,14 +85,7 @@ RUN /bin/bash -c ' \
 RUN apt-get update &&\
     apt-get install -y --no-install-recommends libtbb-dev
 
-RUN python -m venv /opt/cuquantum-env && \
-    chmod -R a+rwX /opt/cuquantum-env &&\
-    . /opt/cuquantum-env/activate_cuquantum.sh && \
-    pip install --upgrade pip && \
-    pip install 'cryptography~=43.0' 'setuptools' 'urllib3==1.26.5' 'packaging'\
-     'httpx' 'wheel' 'mpmath==1.3.0' 'pyjwt==2.4.0'  \
-     'mpi4py' &&\
-    rm -rf /root/.cache/pip
+
 
 # Install GDRCopy
 RUN mkdir -p /var/tmp && cd /var/tmp && \
@@ -138,7 +131,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     update-alternatives --install /usr/local/pmix pmix /usr/pmix-3.2.3 100
 
 # Install Slurm
-RUN mkdir -p /var/tmp && cd /var/tmp && \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    mkdir -p /var/tmp && cd /var/tmp && \
     wget --no-check-certificate https://download.schedmd.com/slurm/slurm-23.11.1.tar.bz2 && \
     tar -xvf /var/tmp/slurm-23.11.1.tar.bz2 && \
     rm -rf /var/tmp/slurm-23.11.1.tar.bz2 && \
@@ -151,7 +145,8 @@ RUN mkdir -p /var/tmp && cd /var/tmp && \
     update-alternatives --install /usr/local/slurm slurm /usr/slurm-23.11.1 100
 
 # remove to the install_packages.sh
-RUN apt-get update && \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
     apt-get -y install libcutensor2 libcutensor-dev libcutensor-doc &&\
     apt-get clean &&\
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -162,6 +157,17 @@ RUN wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantu
     && chmod -R 755 /opt/cuquantum \
     && tar -xvf cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz -C /opt/cuquantum --strip-components=1 \
     && rm cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz 
+
+RUN python -m venv --system-site-packages /opt/cuquantum-env && \
+    chmod -R a+rwX /opt/cuquantum-env &&\
+    #. /opt/cuquantum-env/activate_cuquantum.sh && \
+    . /opt/cuquantum-env/bin/activate &&\
+    pip install --upgrade pip && \
+    pip install 'cryptography~=43.0' 'setuptools' 'urllib3==1.26.5' 'packaging'\
+     'httpx' 'wheel' 'mpmath==1.3.0' 'pyjwt==2.4.0'  \
+     'mpi4py' &&\
+    rm -rf /root/.cache/pip
+
 
 RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-env/lib/libcustatevec.so.1 &&\
     ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-env/lib/libcustatevec.so &&\
