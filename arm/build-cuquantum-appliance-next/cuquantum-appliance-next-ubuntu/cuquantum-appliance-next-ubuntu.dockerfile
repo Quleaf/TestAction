@@ -1,10 +1,12 @@
 FROM ubuntu:22.04
 
+LABEL org.opencontainers.image.arch=arm
+LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
-LABEL org.opencontainers.image.version="25-10-2024"
-LABEL org.opencontainers.image.minversion="0.0.5"
+LABEL org.opencontainers.image.version="26-10-2024"
+LABEL org.opencontainers.image.minversion="0.0.1"
 
 ENV NVARCH="sbsa"
 ENV NVIDIA_REQUIRE_CUDA="cuda>=12.5"
@@ -45,7 +47,7 @@ RUN chmod +x  /opt/aptscript/install_dependencies.sh &&  /opt/aptscript/install_
 
 # RUN apt-get install -y --no-install-recommends openmpi-bin openmpi-common libopenmpi-dev
 
-# # 创建符号链接，保证OpenMPI和UCX的各个目录指向正确的路径
+# Create links for UCX and OpenMPI
 RUN for package in 'ucx' 'ucx-cuda'; do \
         echo "Processing package: ${package}"; \
         name="${package%-*}"; \

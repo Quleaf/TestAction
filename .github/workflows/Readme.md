@@ -1,6 +1,8 @@
 # README for docker-ci.yml
 
-This GitHub Actions workflow automates the building, scanning, and deployment of Docker images based on changes to Dockerfiles in the repository. It supports cross-platform builds, utilizes caching mechanisms to optimize build times, and incorporates security scanning to ensure image integrity. This document provides a detailed explanation of the workflow, including trigger logic, variable and secret configurations, and the internal logic of each step.
+This GitHub Actions workflow automates the building, scanning, and deployment of Docker images based on changes to Dockerfiles in the repository. It supports cross-platform builds (for Setonix and Ella), utilizes caching mechanisms to optimize build times, and incorporates security scanning to ensure image integrity. 
+
+This document provides a detailed explanation of the workflow, including trigger logic, variable and secret configurations, and the internal logic of each step.
 
 ## Table of Contents
 ```mermaid
@@ -21,7 +23,7 @@ graph TD
     D --> E[Approve and Deploy Job]
     C --> |Fail|G
     D --> |Dissatisfied|G  
-    E --> |Disapprove|G[Cleanup Job]
+    E --> |Disapproved|G[Cleanup Job]
 
     C3-.->|pull tar|E
     E -.->H[dockerhub]
@@ -75,9 +77,12 @@ The workflow is triggered on every `push` event to the repository. However, it o
 If these conditions are not met, the workflow exits gracefully without performing any further actions. This ensures that builds are only triggered for intentional and specific changes.
 
 ## Runner logic
+**Which instance will be used for compilation for execution?**
+
 The "Determine Runner Label" step selects the appropriate runner for building the project based on the required architecture and runner availability. 
 - If an **ARM compilation is required** (`LABEL org.opencontainers.image.arch=arm`) and an **ARM-architecure runner is online**, it uses the ARM runner for the build. 
 - Otherwise, it defaults to using the `X64` architecture with `Buildx`(`X64` or `ARM`). 
+- We didn't use the instance guarded methoed, i.e., upto only one `ARM` label runner and only one `X64` can be kept running online simultaneously.
 
 ```mermaid
 flowchart TD
@@ -85,7 +90,7 @@ flowchart TD
     CheckARMComp[Is ARM compilation required?]
     CheckARMRunner[Is an ARM runner **online**?]
     UseARM[Use ARM runner for build]
-    UseX64[Use X64 architecture with Buildx]
+    UseX64[Use X64 runner with Buildx]
     End([End])
 
     Start --> CheckARMComp
@@ -122,6 +127,7 @@ To configure the required variables, navigate to your repository's Settings > Se
 - `ACACIA_ACCESS_KEY_ID`: Access key ID for the S3-compatible storage.
 - `ACACIA_SECRET_ACCESS_KEY`: Secret access key for the S3-compatible storage.
 - `PAT_TOKEN`: PAT token is used for checking the runner label and their availability. 
+
 These variables and secrets are used throughout the workflow for authentication and tagging purposes.
 
 ### Environments (`manual_approval`)
