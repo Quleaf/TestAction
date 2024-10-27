@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
+LABEL org.opencontainers.image.devmode=true
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
