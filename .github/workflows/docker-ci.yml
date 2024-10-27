@@ -121,7 +121,7 @@ jobs:
           echo "Single Dockerfile modified: $file"
 
           # check Dockerfile includes org.opencontainers.image.compilation=auto
-          if grep -q -E 'LABEL\s+org\.opencontainers\.image\.compilation\s*=\s*auto' "$file"; then
+          if grep -q -E '^[^#]*LABEL\s+org\.opencontainers\.image\.compilation\s*=\s*auto' "$file"; then
             echo "Dockerfile contains org.opencontainers.image.compilation=auto. Setting proceed_valid to true."
             echo "proceed_valid=true" >> $GITHUB_OUTPUT
           else
@@ -130,7 +130,7 @@ jobs:
           fi
           
           # check Dockerfile includes org.opencontainers.image.devmode=true
-          if grep -q -E 'LABEL\s+org\.opencontainers\.image\.devmode\s*=\s*true' "$file"; then
+          if grep -q -E '^[^#]*LABEL\s+org\.opencontainers\.image\.devmode\s*=\s*true' "$file"; then
             echo "Dockerfile contains org.opencontainers.image.devmode=auto. Setting devmode to true."
             echo "devmode=true" >> $GITHUB_OUTPUT
           else
@@ -151,10 +151,10 @@ jobs:
           dockerfile_name="${base%.*}"
           echo "Dockerfile name: $dockerfile_name"
           # Determine platform by checking file contents
-          if grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(arm|aarch64|arm64)' "$file"; then
+          if grep -q -E '^[^#]*LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(arm|aarch64|arm64)' "$file"; then
             platform="linux/arm64"
             platform_tag="arm"            
-          elif grep -q -E 'LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(x86|amd64|x86_64)' "$file"; then
+          elif grep -q -E '^[^#]*LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(x86|amd64|x86_64)' "$file"; then
             platform="linux/amd64"
             platform_tag="x86"
           else
