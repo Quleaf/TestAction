@@ -312,7 +312,7 @@ jobs:
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
-      - name: Build Docker image locally
+      - name: Build Docker image locally, for development mode
         env:
           CACHELOC: ${{ env.CACHELOC }}
         if: needs.PREPARE-job.outputs.devmode == 'true'
@@ -449,6 +449,14 @@ jobs:
         run: |          
           docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
+      - name: Remove Docker images
+        run: |
+          # Remove the main image
+          docker rmi ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
+        
+            # Remove tagged images
+          docker rmi ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
+          docker rmi quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
 
 
   CLEANUP-job:
