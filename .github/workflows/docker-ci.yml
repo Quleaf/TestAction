@@ -295,25 +295,27 @@ jobs:
           echo "CACHELOC=$CACHE_DIR" >> $GITHUB_ENV
           echo "CACHELOC is set to ${CACHE_DIR} ".           
 
-      # - name: Build Docker image locally, save to tar file and move to persistent storage
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     context: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.directory }}
-      #     file: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.files }}
-      #     tags: | 
-      #       ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-      #     platforms: ${{ needs.PREPARE-job.outputs.platform }}
-      #     push: false
-      #     load: true
-      #     provenance: false
-      #     cache-from: type=local,src=${{env.CACHELOC}}
-      #     cache-to: type=local,dest=${{env.CACHELOC}},mode=max
+      - name: Build Docker image locally, save to tar file and move to persistent storage
+        uses: docker/build-push-action@v6
+        if: needs.PREPARE-job.outputs.devmode != 'true'
+        with:
+          context: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.directory }}
+          file: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.files }}
+          tags: | 
+            ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+          platforms: ${{ needs.PREPARE-job.outputs.platform }}
+          push: false
+          load: true
+          provenance: false
+          cache-from: type=local,src=${{env.CACHELOC}}
+          cache-to: type=local,dest=${{env.CACHELOC}},mode=max
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
       - name: Build Docker image locally
         env:
           CACHELOC: ${{ env.CACHELOC }}
+        if: needs.PREPARE-job.outputs.devmode == 'true'
         run: |
           docker buildx build \
             --progress plain \
