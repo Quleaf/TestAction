@@ -11,6 +11,7 @@ jobs:
       platform_tag: ${{ steps.parse_path.outputs.platform_tag }}
       date: ${{ steps.date.outputs.date }}
       proceed_valid: ${{ steps.set_proceed_flag.outputs.proceed_valid }}
+      devmode: ${{ steps.set_proceed_flag.outputs.devmode }}
       directory: ${{ steps.parse_path.outputs.directory }}
       files: ${{ steps.changed_files.outputs.files }}
       platform: ${{ steps.parse_path.outputs.platform }}
@@ -126,6 +127,15 @@ jobs:
           else
             echo "Dockerfile does not contain org.opencontainers.image.compilation=auto. Setting proceed_valid to false."
             echo "proceed_valid=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # check Dockerfile includes org.opencontainers.image.devmode=true
+          if grep -q -E 'LABEL\s+org\.opencontainers\.image\.devmode\s*=\s*true' "$file"; then
+            echo "Dockerfile contains org.opencontainers.image.devmode=auto. Setting devmode to true."
+            echo "devmode=true" >> $GITHUB_OUTPUT
+          else
+            echo "Dockerfile does not contain org.opencontainers.image.devmode=true. Setting devmode to false."
+            echo "devmode=false" >> $GITHUB_OUTPUT
           fi    
 
       - name: Parse file path
