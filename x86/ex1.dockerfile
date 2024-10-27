@@ -3,7 +3,7 @@
 FROM ubuntu:20.04
 LABEL org.opencontainers.image.arch=x86
 LABEL org.opencontainers.image.compilation=auto
-#LABEL org.opencontainers.image.devmode=true
+LABEL org.opencontainers.image.devmode=true
 
 # # Install curl package
 #RUN apk add --no-cache curl
