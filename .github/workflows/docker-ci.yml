@@ -379,7 +379,7 @@ jobs:
             name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
             path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
-  APPROVE-AND-DEPLOY-job:
+  APPROVE-AND-PUSH-job:
     needs: [BUILD-AND-PUSH-job, PREPARE-job]
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
@@ -389,7 +389,8 @@ jobs:
     environment:
       name: manual_approval  
     steps:
-      - name: Print hostname
+      - name: Print hostname and set approved label for deployment
+        id: set_approved_label
         run: |
           echo "Hostname: $(hostname)"
       - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory in case of running before scan
@@ -456,17 +457,28 @@ jobs:
         
             # Remove tagged images
           docker rmi ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
-          docker rmi quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
+          docker rmi quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true        
 
 
   CLEANUP-job:
-    needs: [APPROVE-AND-DEPLOY-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
+    needs: [APPROVE-AND-PUSH-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
     if: always()
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     steps:
       - name: Clean-up
         run: |
           sudo rm -rf $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
+
+  DEPLOY-job:
+    needs: [APPROVE-AND-PUSH-job,PREPARE-job]
+    runs-on: ubuntu-latest
+    if: needs.PREPARE-job.outputs.platform_tag == 'arm'
+    environment:
+      name: manual_approval  
+    steps:
+      - name: Deploy ARM image to Ella  
+        run: |
+            echo "Deploying ARM image to Ella"
 
 
 

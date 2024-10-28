@@ -4,6 +4,7 @@ FROM ubuntu:20.04
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
+LABEL org.opencontainers.image.devmode=false
 
 # Install curl package
 #RUN apk add --no-cache curl
@@ -14,4 +15,4 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Define the command that will run when the container starts
-CMD ["echo", "Hello, World18.7!"]
+CMD ["echo", "Hello, World18.3!"]
