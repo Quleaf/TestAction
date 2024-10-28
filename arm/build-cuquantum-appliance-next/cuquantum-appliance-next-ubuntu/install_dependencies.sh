@@ -37,7 +37,9 @@ rm -f libucx0_1.16.0+ds-5ubuntu1_arm64.deb
 
 # install Mellanox OFED and nvdia driver
 apt-get update && apt-get install -y --no-install-recommends libnvidia-compute-560=560.35.03-0ubuntu1
-apt-get install -y --no-install-recommends mlnx-ofed-all
+
+#Here OpenMPI has been installed as a dependency of Mellanox OFED
+apt-get install -y --no-install-recommends mlnx-ofed-all  
 apt-get install -y --no-install-recommends ucx-cuda
 
 # Clean up
