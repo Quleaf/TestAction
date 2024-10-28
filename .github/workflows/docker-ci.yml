@@ -479,6 +479,10 @@ jobs:
     environment:
       name: manual_approval  
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
       - name: Setup rclone
         uses: ./.github/actions/setup-rclone
         with:
