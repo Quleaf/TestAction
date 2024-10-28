@@ -471,7 +471,7 @@ jobs:
 
   DEPLOY-job:
     needs: [APPROVE-AND-PUSH-job,PREPARE-job]
-    runs-on: ubuntu-latest
+    runs-on: Ella
     if: needs.PREPARE-job.outputs.platform_tag == 'arm'
     env:
       BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
