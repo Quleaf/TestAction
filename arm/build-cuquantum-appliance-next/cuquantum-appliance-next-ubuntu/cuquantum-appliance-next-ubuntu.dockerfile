@@ -216,7 +216,7 @@ RUN cd /opt/cuquantum/distributed_interfaces &&\
 
 RUN git clone https://github.com/nvidia/cuquantum.git /tmp/cuquantum && \
     mv /tmp/cuquantum/benchmarks /opt/benchmarks && \
-    rm -rf /tmp/cuquantum &&\
+    rm -rf /tmp/cuquantum/benchmarks &&\
     mv /tmp/cuquantum /opt/cuquantum-git &&\
     . /opt/cuquantum-env/activate_cuquantum.sh && \
     cd /opt/benchmarks && \
