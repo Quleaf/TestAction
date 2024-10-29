@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
-LABEL org.opencontainers.image.devmode=true
+LABEL org.opencontainers.image.devmode=false
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
@@ -213,6 +213,12 @@ RUN . /opt/cuquantum-env/activate_cuquantum.sh \
 RUN cd /opt/cuquantum/distributed_interfaces &&\
     sh activate_mpi.sh &&\
     echo 'export CUTENSORNET_COMM_LIB=/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_mpi.so' >> /opt/cuquantum-env/activate_cuquantum.sh 
+
+RUN git clone https://github.com/nvidia/cuquantum.git /tmp/cuquantum && \
+    cp -r /tmp/cuquantum/benchmarks /opt/benchmarks && \
+    . /opt/cuquantum-env/activate_cuquantum.sh && \
+    cd /opt/benchmarks && \
+    pip install .
 
 
 
