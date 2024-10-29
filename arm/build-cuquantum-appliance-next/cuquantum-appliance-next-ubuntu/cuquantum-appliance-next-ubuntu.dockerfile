@@ -111,119 +111,118 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 
 # RUN apt-get install -y --no-install-recommends openmpi-bin openmpi-common libopenmpi-dev
 
-# # Create links for UCX and OpenMPI
-# RUN for package in 'ucx' 'ucx-cuda'; do \
-#         echo "Processing package: ${package}"; \
-#         name="${package%-*}"; \
-#         for target in '/bin/' '/lib/' '/include/'; do \
-#             echo "Processing target: ${target}"; \
-#             dpkg -L "${package}" | grep -E "${target}" | while read -r file; do \
-#                 if [ -f "${file}" ]; then \
-#                     echo "Linking file: ${file}" && \
-#                     mkdir -p "$(dirname "/usr/${name}${target}${file#*${target}}")" && \
-#                     ln -s "${file}" "/usr/${name}${target}${file#*${target}}"; \
-#                 fi; \
-#             done; \
-#         done; \
-#     done
+# Create links for UCX and OpenMPI
+RUN for package in 'ucx' 'ucx-cuda'; do \
+        echo "Processing package: ${package}"; \
+        name="${package%-*}"; \
+        for target in '/bin/' '/lib/' '/include/'; do \
+            echo "Processing target: ${target}"; \
+            dpkg -L "${package}" | grep -E "${target}" | while read -r file; do \
+                if [ -f "${file}" ]; then \
+                    echo "Linking file: ${file}" && \
+                    mkdir -p "$(dirname "/usr/${name}${target}${file#*${target}}")" && \
+                    ln -s "${file}" "/usr/${name}${target}${file#*${target}}"; \
+                fi; \
+            done; \
+        done; \
+    done
 
-# RUN /bin/bash -c ' \
-#     base_path="/usr/mpi/gcc/openmpi-4.1.5rc2" && \
-#     for package in openmpi; do \
-#         for target in bin lib include; do \
-#             src_path="${base_path}/${target}" && \
-#             dest_path="/usr/${package}/${target}" && \
-#             if [ -d "${src_path}" ]; then \
-#                 mkdir -p "${dest_path}" && \
-#                 for file in "${src_path}"/*; do \
-#                     if [ -f "${file}" ] || [ -L "${file}" ]; then \
-#                         ln -s "${file}" "${dest_path}/$(basename "${file}")"; \
-#                     fi; \
-#                 done; \
-#             fi; \
-#         done; \
-#     done && \
-#     update-alternatives --install /usr/local/mpi mpi /usr/openmpi 100 &&\
-#     update-alternatives --install /usr/local/ucx ucx /usr/ucx 100' 
+RUN /bin/bash -c ' \
+    base_path="/usr/mpi/gcc/openmpi-4.1.5rc2" && \
+    for package in openmpi; do \
+        for target in bin lib include; do \
+            src_path="${base_path}/${target}" && \
+            dest_path="/usr/${package}/${target}" && \
+            if [ -d "${src_path}" ]; then \
+                mkdir -p "${dest_path}" && \
+                for file in "${src_path}"/*; do \
+                    if [ -f "${file}" ] || [ -L "${file}" ]; then \
+                        ln -s "${file}" "${dest_path}/$(basename "${file}")"; \
+                    fi; \
+                done; \
+            fi; \
+        done; \
+    done && \
+    update-alternatives --install /usr/local/mpi mpi /usr/openmpi 100 &&\
+    update-alternatives --install /usr/local/ucx ucx /usr/ucx 100' 
 
-# RUN apt-get update &&\
-#     apt-get install -y --no-install-recommends libtbb-dev
-
-
-
-# # remove to the install_packages.sh
-# RUN export DEBIAN_FRONTEND=noninteractive && \
-#     apt-get update && \
-#     apt-get -y install libcutensor2 libcutensor-dev libcutensor-doc &&\
-#     apt-get clean &&\
-#     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update &&\
+    apt-get install -y --no-install-recommends libtbb-dev
 
 
-# RUN wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz \
-#     && mkdir -p /opt/cuquantum \
-#     && chmod -R 755 /opt/cuquantum \
-#     && tar -xvf cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz -C /opt/cuquantum --strip-components=1 \
-#     && rm cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz 
-
-# RUN python -m venv --system-site-packages /opt/cuquantum-env && \
-#     chmod -R a+rwX /opt/cuquantum-env &&\
-#     #. /opt/cuquantum-env/activate_cuquantum.sh && \
-#     . /opt/cuquantum-env/bin/activate &&\
-#     pip install --upgrade pip && \
-#     pip install 'cryptography~=43.0' 'setuptools' 'urllib3==1.26.5' 'packaging'\
-#      'httpx' 'wheel' 'mpmath==1.3.0' 'pyjwt==2.4.0'  \
-#      'mpi4py' &&\
-#     rm -rf /root/.cache/pip
+# remove to the install_packages.sh
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get -y install libcutensor2 libcutensor-dev libcutensor-doc &&\
+    apt-get clean &&\
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 
-# RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-env/lib/libcustatevec.so.1 &&\
-#     ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-env/lib/libcustatevec.so &&\
-#     ln -s /opt/cuquantum/lib/libcutensornet.so.2 /opt/cuquantum-env/lib/libcutensornet.so.2 &&\
-#     ln -s /opt/cuquantum/lib/libcutensornet.so.2 /opt/cuquantum-env/lib/libcutensornet.so 
+RUN wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz \
+    && mkdir -p /opt/cuquantum \
+    && chmod -R 755 /opt/cuquantum \
+    && tar -xvf cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz -C /opt/cuquantum --strip-components=1 \
+    && rm cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz 
+
+RUN python -m venv --system-site-packages /opt/cuquantum-env && \
+    chmod -R a+rwX /opt/cuquantum-env &&\
+    #. /opt/cuquantum-env/activate_cuquantum.sh && \
+    . /opt/cuquantum-env/bin/activate &&\
+    pip install --upgrade pip && \
+    pip install 'cryptography~=43.0' 'setuptools' 'urllib3==1.26.5' 'packaging'\
+     'httpx' 'wheel' 'mpmath==1.3.0' 'pyjwt==2.4.0'  \
+     'mpi4py' &&\
+    rm -rf /root/.cache/pip
+
+
+RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-env/lib/libcustatevec.so.1 &&\
+    ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-env/lib/libcustatevec.so &&\
+    ln -s /opt/cuquantum/lib/libcutensornet.so.2 /opt/cuquantum-env/lib/libcutensornet.so.2 &&\
+    ln -s /opt/cuquantum/lib/libcutensornet.so.2 /opt/cuquantum-env/lib/libcutensornet.so 
     
 
-# # Prepare activation script
-# RUN echo '#!/bin/bash' > /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo '. /opt/cuquantum-env/bin/activate' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export CUDA_PATH=/usr/local/cuda' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export BASE_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export BASE_LD_PRELOAD=${LD_PRELOAD}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export LD_LIBRARY_PATH=/opt/cuquantum-env/lib:${LD_LIBRARY_PATH}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1:${LD_PRELOAD}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export CUQUANTUM_ROOT=/opt/cuquantum'>> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export CUTENSOR_ROOT=/opt/cuquantum'>> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export MPI_PATH=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#  #for cutensornet samples require MPI_ROOT   
-#     echo 'export MPI_ROOT=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     echo 'export PATH=/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/cuquantum/bin' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#     chmod +x /opt/cuquantum-env/activate_cuquantum.sh
+# Prepare activation script
+RUN echo '#!/bin/bash' > /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo '. /opt/cuquantum-env/bin/activate' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export CUDA_PATH=/usr/local/cuda' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export BASE_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export BASE_LD_PRELOAD=${LD_PRELOAD}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export LD_LIBRARY_PATH=/opt/cuquantum-env/lib:${LD_LIBRARY_PATH}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1:${LD_PRELOAD}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export CUQUANTUM_ROOT=/opt/cuquantum'>> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export CUTENSOR_ROOT=/opt/cuquantum'>> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export MPI_PATH=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+ #for cutensornet samples require MPI_ROOT   
+    echo 'export MPI_ROOT=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export PATH=/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/cuquantum/bin' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+    chmod +x /opt/cuquantum-env/activate_cuquantum.sh
 
-# COPY qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl /opt/
+COPY qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl /opt/
 
-# RUN . /opt/cuquantum-env/activate_cuquantum.sh \
-#     && pip install 'Cython>=0.29.22,<3' numpy cupy-cuda12x nbformat pytest\
-#     && pip install /opt/qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl\
-#     && wget https://github.com/NVIDIA/cuQuantum/archive/refs/tags/v24.08.0.tar.gz \
-#     && mkdir -p /opt/cuquantum-source \
-#     && tar -xvf v24.08.0.tar.gz -C /opt/cuquantum-source --strip-components=1 \
-#     && rm v24.08.0.tar.gz \
-#     && cd /opt/cuquantum-source/python \
-#     && pip install -v --no-deps --no-build-isolation . \
-#     && rm -rf /root/.cache/pip
+RUN . /opt/cuquantum-env/activate_cuquantum.sh \
+    && pip install 'Cython>=0.29.22,<3' numpy cupy-cuda12x nbformat pytest\
+    && pip install /opt/qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl\
+    && wget https://github.com/NVIDIA/cuQuantum/archive/refs/tags/v24.08.0.tar.gz \
+    && mkdir -p /opt/cuquantum-source \
+    && tar -xvf v24.08.0.tar.gz -C /opt/cuquantum-source --strip-components=1 \
+    && rm v24.08.0.tar.gz \
+    && cd /opt/cuquantum-source/python \
+    && pip install -v --no-deps --no-build-isolation . \
+    && rm -rf /root/.cache/pip
 
-# RUN cd /opt/cuquantum/distributed_interfaces &&\
-#     sh activate_mpi.sh &&\
-#     echo 'export CUTENSORNET_COMM_LIB=/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_mpi.so' >> /opt/cuquantum-env/activate_cuquantum.sh 
+RUN cd /opt/cuquantum/distributed_interfaces &&\
+    sh activate_mpi.sh &&\
+    echo 'export CUTENSORNET_COMM_LIB=/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_mpi.so' >> /opt/cuquantum-env/activate_cuquantum.sh 
 
 
 
-# # Configure deactivate script
-# RUN echo '#!/bin/bash' > /opt/cuquantum-env/deactivate_cuquantum.sh && \
-#     echo 'export LD_LIBRARY_PATH=${BASE_LD_LIBRARY_PATH}' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
-#     echo 'export LD_PRELOAD=${BASE_LD_PRELOAD}' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
-#     echo 'unset BASE_LD_LIBRARY_PATH' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
-#     echo 'unset BASE_LD_PRELOAD' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
-#     chmod +x /opt/cuquantum-env/deactivate_cuquantum.sh
+# Configure deactivate script
+RUN echo '#!/bin/bash' > /opt/cuquantum-env/deactivate_cuquantum.sh && \
+    echo 'export LD_LIBRARY_PATH=${BASE_LD_LIBRARY_PATH}' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
+    echo 'export LD_PRELOAD=${BASE_LD_PRELOAD}' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
+    echo 'unset BASE_LD_LIBRARY_PATH' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
+    echo 'unset BASE_LD_PRELOAD' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
+    chmod +x /opt/cuquantum-env/deactivate_cuquantum.sh
 
 # Set entrypoint to activate the environment on container start
 # ENTRYPOINT ["/opt/cuquantum-env/activate_cuquantum.sh"]
