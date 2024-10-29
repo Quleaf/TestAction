@@ -504,7 +504,7 @@ jobs:
             echo "Converting image: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}" to Singularity
             source ~/.bashrc
           
-            singularity build $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}.sif docker-archive://$MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/image.tar
+            singularity build --force $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}.sif docker-archive://$MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/image.tar
            
 
 

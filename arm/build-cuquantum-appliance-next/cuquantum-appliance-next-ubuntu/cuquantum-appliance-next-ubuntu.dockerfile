@@ -215,7 +215,9 @@ RUN cd /opt/cuquantum/distributed_interfaces &&\
     echo 'export CUTENSORNET_COMM_LIB=/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_mpi.so' >> /opt/cuquantum-env/activate_cuquantum.sh 
 
 RUN git clone https://github.com/nvidia/cuquantum.git /tmp/cuquantum && \
-    cp -r /tmp/cuquantum/benchmarks /opt/benchmarks && \
+    mv /tmp/cuquantum/benchmarks /opt/benchmarks && \
+    rm -rf /tmp/cuquantum &&\
+    mv /tmp/cuquantum /opt/cuquantum-git &&\
     . /opt/cuquantum-env/activate_cuquantum.sh && \
     cd /opt/benchmarks && \
     pip install .
