@@ -10,7 +10,7 @@ graph TD
     A[Push Event Trigger] ---> B[Prepare Job]
     
     B1>Single *.dockerfile?] -.-> B
-    B2>has specific labels? ] -.-> B
+    B2>Has specific labels? ] -.-> B
     B3>Which runner?] -.-> B
     B -->|proceed_valid=true| C[Build and Push Job]
     B -->|proceed_valid=false| F[End]
@@ -28,14 +28,16 @@ graph TD
     C3-.->|pull tar|E
     E -.->H[dockerhub]
     E -.->I[Quay.io]
-    E -.->J[Acacia S3]
-    
-    
-  
-    subgraph local storage speed-up
+    E -.->J[Acacia S3]      
+
+    subgraph Ella Deploy
+        J-.->|Approved & ARM64|K[(WekaFS)]
+        K-->|Singularity|L[SIF File]
+    end
+
+    subgraph RUNNER storage speed-up
         C[Build and Push Job] -.-> |push tar|C3[(Local storage)]
         C3-.->|pull tar|D[Scan and Report Job]
-
     end
     
     %% Styling for clarity
@@ -59,8 +61,9 @@ graph TD
   - [PREPARE-job](#prepare-job)
   - [BUILD-AND-PUSH-job](#build-and-push-job)
   - [SCAN-AND-REPORT-job](#scan-and-report-job)
-  - [APPROVE-AND-DEPLOY-job](#approve-and-deploy-job)
+  - [APPROVE-AND-PUSH-job](#approve-and-deploy-job)
   - [CLEANUP-job](#cleanup-job)
+  - [Deploy-job](#deploy-job) 
 - [Cache Logic](#cache-logic)
 - [Cross-Platform Logic](#cross-platform-logic)
 - [Conclusion](#conclusion)
@@ -69,7 +72,7 @@ graph TD
 
 The workflow is triggered on every `push` event to the repository. However, it only proceeds under the following conditions:
 
-- **Single Dockerfile Modification**: Exactly one Dockerfile must be modified in the commit.
+- **Single Dockerfile Modification**: Exactly **ONLY** one Dockerfile must be modified in the commit.
 - **Specific Label Present**: 
     - The modified Dockerfile must contain the label `org.opencontainers.image.compilation=auto`.
     - The modified Docerfile must contain the laber for arch `LABEL org.opencontainers.image.arch=x86` or `LABEL org.opencontainers.image.arch=arm`

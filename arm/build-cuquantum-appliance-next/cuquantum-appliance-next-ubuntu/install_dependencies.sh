@@ -40,7 +40,7 @@ apt-get update && apt-get install -y --no-install-recommends libnvidia-compute-5
 
 #Here OpenMPI has been installed as a dependency of Mellanox OFED
 #apt-get install -y --no-install-recommends mlnx-ofed-all  
-apt-get install -y --no-install-recommends ucx-cuda
+#apt-get install -y --no-install-recommends ucx-cuda
 
 
 
