@@ -60,12 +60,12 @@ rm ${MLNX_OFED_PACKAGE}
 
 # Install MLNX OFED user-space components
 cd /tmp/MLNX_OFED/MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-aarch64 
-./mlnxofedinstall --user-space-only --without-fw-update --all --force
+# ./mlnxofedinstall --user-space-only --without-fw-update --all --force
 
-# Clean up MLNX OFED installation files
-rm -rf /tmp/MLNX_OFED
+# # Clean up MLNX OFED installation files
+# rm -rf /tmp/MLNX_OFED
 
 
-# Clean up
-apt-get clean
-rm -rf /var/lib/apt/lists/*
+# # Clean up
+# apt-get clean
+# rm -rf /var/lib/apt/lists/*

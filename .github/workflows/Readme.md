@@ -72,7 +72,7 @@ graph TD
 
 The workflow is triggered on every `push` event to the repository. However, it only proceeds under the following conditions:
 
-- **Single Dockerfile Modification**: Exactly **ONLY** one Dockerfile must be modified in the commit.
+- **Single Dockerfile Modification**: Exactly **ONLY** one Dockerfile can be modified in the commit.
 - **Specific Label Present**: 
     - The modified Dockerfile must contain the label `org.opencontainers.image.compilation=auto`.
     - The modified Docerfile must contain the laber for arch `LABEL org.opencontainers.image.arch=x86` or `LABEL org.opencontainers.image.arch=arm`
@@ -105,7 +105,7 @@ flowchart TD
     UseX64 --> End
 ```
 
-## Prerequisites
+## Prerequisites (if forked)
 - **Uplift your current account to sudo group (admin group for Mac)** : As this script use local storage (save image to local path) which beyonds the Github workspace scope, you need to upgrade `$(whoami)` to sudo group and also set no PASSWORD are required for this group.
 - **Docker Hub Account**: Required for pushing Docker images to Docker Hub.
 - **Quay.io Account**: An alternative container registry for hosting Docker images.
