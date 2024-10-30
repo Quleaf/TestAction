@@ -43,7 +43,33 @@ export DEBIAN_FRONTEND=noninteractive
 #apt-get install -y --no-install-recommends ucx-cuda
 
 
-
+apt-get update 
+apt-get install -y --no-install-recommends \
+udev \
+pciutils \
+tk \
+libnl-route-3-200 \
+libfuse2 \
+debhelper \
+libnl-3-200 \
+ethtool \
+gfortran \
+lsof \
+libltdl-dev \
+libpci3 \
+libnl-route-3-dev \
+libusb-1.0-0 \
+pkg-config \
+graphviz \
+tcl \
+swig \
+chrpath \
+libnl-3-dev \
+libmnl0 \
+bison \
+kmod \
+libnvidia-compute-535 
+rm -rf /var/lib/apt/lists/*
 
 # Install MLNX OFED (user-space only)
 # Set MLNX OFED version and download URL

@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.version="30-10-2024"
-LABEL org.opencontainers.image.minversion="0.0.5"
+LABEL org.opencontainers.image.minversion="0.0.6"
 
 ENV NVARCH="sbsa"
 ENV NVIDIA_REQUIRE_CUDA="cuda>=12.5"
@@ -34,11 +34,6 @@ ENV LD_LIBRARY_PATH="/usr/local/mpi/lib:/usr/local/ucx/lib:/usr/local/gdrcopy/li
 ENV LIBRARY_PATH="/usr/local/cuda/lib64/stubs"
 ENV CUQUANTUM_ROOT="/opt/cuquantum"
 ENV CUTENSORNET_COMM_LIB="/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_mpi.so"
-
-
-
-
-
 
 # Copy the install script
 COPY install_packages.sh /opt/aptscript/install_packages.sh
