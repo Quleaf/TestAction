@@ -47,23 +47,23 @@ apt-get install -y --no-install-recommends ucx-cuda
 
 # Install MLNX OFED (user-space only)
 # Set MLNX OFED version and download URL
-ENV MLNX_OFED_VERSION=23.10-3.2.2.0
-ENV MLNX_OFED_PACKAGE=MLNX_OFED_LINUX-${MLNX_OFED_VERSION}-ubuntu22.04-aarch64.tgz
-ENV MLNX_OFED_DOWNLOAD_URL=https://content.mellanox.com/ofed/MLNX_OFED-${MLNX_OFED_VERSION}/${MLNX_OFED_PACKAGE}
+MLNX_OFED_VERSION=23.10-3.2.2.0
+MLNX_OFED_PACKAGE=MLNX_OFED_LINUX-${MLNX_OFED_VERSION}-ubuntu22.04-aarch64.tgz
+MLNX_OFED_DOWNLOAD_URL=https://content.mellanox.com/ofed/MLNX_OFED-${MLNX_OFED_VERSION}/${MLNX_OFED_PACKAGE}
 
 # Download and extract MLNX OFED
-RUN mkdir -p /tmp/MLNX_OFED && \
-    cd /tmp && \
-    wget ${MLNX_OFED_DOWNLOAD_URL} && \
-    tar -xzf ${MLNX_OFED_PACKAGE} -C /tmp/MLNX_OFED --strip-components=1 && \
-    rm ${MLNX_OFED_PACKAGE}
+mkdir -p /tmp/MLNX_OFED 
+cd /tmp && \
+wget ${MLNX_OFED_DOWNLOAD_URL} 
+tar -xzf ${MLNX_OFED_PACKAGE} -C /tmp/MLNX_OFED --strip-components=1 
+rm ${MLNX_OFED_PACKAGE}
 
 # Install MLNX OFED user-space components
-RUN cd /tmp/MLNX_OFED/MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-aarch64 && \
-    ./mlnxofedinstall --user-space-only --without-fw-update --all --force
+cd /tmp/MLNX_OFED/MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-aarch64 
+./mlnxofedinstall --user-space-only --without-fw-update --all --force
 
 # Clean up MLNX OFED installation files
-RUN rm -rf /tmp/MLNX_OFED
+rm -rf /tmp/MLNX_OFED
 
 
 # Clean up
