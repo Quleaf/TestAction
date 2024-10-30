@@ -123,7 +123,12 @@ RUN for package in 'ucx' 'ucx-cuda'; do \
     done
 
 RUN /bin/bash -c ' \
-    base_path="/usr/mpi/gcc/openmpi-4.1.5rc2" && \
+    base_path=$(ls -d /usr/mpi/gcc/openmpi-* 2>/dev/null | head -n 1) && \
+    if [ -z "$base_path" ]; then \
+        echo "Error: No OpenMPI installation found in /usr/mpi/gcc/openmpi-*/" && \
+        exit 1; \
+    fi && \
+    echo "Using OpenMPI base path: $base_path" && \
     for package in openmpi; do \
         for target in bin lib include; do \
             src_path="${base_path}/${target}" && \
