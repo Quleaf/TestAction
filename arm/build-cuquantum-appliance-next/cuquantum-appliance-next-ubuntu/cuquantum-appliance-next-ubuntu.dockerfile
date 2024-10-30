@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.devmode=false
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
-LABEL org.opencontainers.image.version="27-10-2024"
+LABEL org.opencontainers.image.version="30-10-2024"
 LABEL org.opencontainers.image.minversion="0.0.1"
 
 ENV NVARCH="sbsa"
