@@ -30,10 +30,10 @@ apt-get remove --yes \
 
 # install necessary packages
 apt-get update && \
-apt-get install -y ibverbs-providers openssl libssl-dev openssh-client openssh-server&& \
-wget https://launchpad.net/ubuntu/+archive/primary/+files/libucx0_1.16.0+ds-5ubuntu1_arm64.deb && \
-dpkg -i libucx0_1.16.0+ds-5ubuntu1_arm64.deb || apt-get install -f -y && \
-rm -f libucx0_1.16.0+ds-5ubuntu1_arm64.deb
+apt-get install -y ibverbs-providers openssl libssl-dev openssh-client openssh-server
+#wget https://launchpad.net/ubuntu/+archive/primary/+files/libucx0_1.16.0+ds-5ubuntu1_arm64.deb && \
+#dpkg -i libucx0_1.16.0+ds-5ubuntu1_arm64.deb || apt-get install -f -y && \
+#rm -f libucx0_1.16.0+ds-5ubuntu1_arm64.deb
 
 # install Mellanox OFED and nvdia driver
 apt-get update && apt-get install -y --no-install-recommends libnvidia-compute-560=560.35.03-0ubuntu1

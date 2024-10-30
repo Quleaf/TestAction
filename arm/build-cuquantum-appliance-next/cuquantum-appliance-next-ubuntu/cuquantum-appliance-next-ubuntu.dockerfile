@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.version="30-10-2024"
-LABEL org.opencontainers.image.minversion="0.0.3"
+LABEL org.opencontainers.image.minversion="0.0.4"
 
 ENV NVARCH="sbsa"
 ENV NVIDIA_REQUIRE_CUDA="cuda>=12.5"
