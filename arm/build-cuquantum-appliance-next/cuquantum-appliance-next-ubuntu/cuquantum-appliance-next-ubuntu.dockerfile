@@ -103,6 +103,42 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 COPY install_dependencies.sh /opt/aptscript/install_dependencies.sh
 RUN chmod +x  /opt/aptscript/install_dependencies.sh &&  /opt/aptscript/install_dependencies.sh
     
+ENV HPCX_HOME=/opt/hpcx \
+    HPCX_DIR=${HPCX_HOME} \
+    HPCX_UCX_DIR=${HPCX_HOME}/ucx \
+    HPCX_UCC_DIR=${HPCX_HOME}/ucc \
+    HPCX_SHARP_DIR=${HPCX_HOME}/sharp \
+    HPCX_HCOLL_DIR=${HPCX_HOME}/hcoll \
+    HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR=${HPCX_HOME}/nccl_rdma_sharp_plugin \
+    HPCX_MPI_DIR=${HPCX_HOME}/ompi \
+    HPCX_OSHMEM_DIR=${HPCX_HOME}/ompi \
+    HPCX_MPI_TESTS_DIR=${HPCX_HOME}/ompi/tests \
+    HPCX_OSU_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks \
+    HPCX_OSU_CUDA_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks-cuda \
+    OPAL_PREFIX=${HPCX_HOME}/ompi \
+    PMIX_INSTALL_PREFIX=${HPCX_HOME}/ompi \
+    OMPI_HOME=${HPCX_HOME}/ompi \
+    MPI_HOME=${HPCX_HOME}/ompi \
+    OSHMEM_HOME=${HPCX_HOME}/ompi \
+    SHMEM_HOME=${HPCX_HOME}/ompi
+
+# 更新 PATH
+ENV PATH=${HPCX_UCX_DIR}/bin:${HPCX_UCC_DIR}/bin:${HPCX_HCOLL_DIR}/bin:${HPCX_SHARP_DIR}/bin:${HPCX_MPI_TESTS_DIR}/imb:${HPCX_HOME}/clusterkit/bin:${HPCX_MPI_DIR}/bin:$PATH
+
+# 更新 LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/lib:${HPCX_UCC_DIR}/lib/ucc:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:${HPCX_MPI_DIR}/lib:$LD_LIBRARY_PATH
+
+# 更新 LIBRARY_PATH
+ENV LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCC_DIR}/lib:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:$LIBRARY_PATH
+
+# 更新 CPATH
+ENV CPATH=${HPCX_HCOLL_DIR}/include:${HPCX_SHARP_DIR}/include:${HPCX_UCX_DIR}/include:${HPCX_UCC_DIR}/include:${HPCX_MPI_DIR}/include:$CPATH
+
+# 更新 PKG_CONFIG_PATH
+ENV PKG_CONFIG_PATH=${HPCX_HCOLL_DIR}/lib/pkgconfig:${HPCX_SHARP_DIR}/lib/pkgconfig:${HPCX_UCX_DIR}/lib/pkgconfig:${HPCX_MPI_DIR}/lib/pkgconfig:$PKG_CONFIG_PATH
+
+# 更新 MANPATH
+ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH  
 
 
 # # Create links for UCX and OpenMPI
@@ -190,10 +226,10 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-env/activate_cuquantum.sh && \
     echo 'export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1:${LD_PRELOAD}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
     echo 'export CUQUANTUM_ROOT=/opt/cuquantum'>> /opt/cuquantum-env/activate_cuquantum.sh && \
     echo 'export CUTENSOR_ROOT=/opt/cuquantum'>> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export MPI_PATH=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
- #for cutensornet samples require MPI_ROOT   
-    echo 'export MPI_ROOT=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export PATH=/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/cuquantum/bin' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+#    echo 'export MPI_PATH=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+#   for cutensornet samples require MPI_ROOT   
+#    echo 'export MPI_ROOT=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+#    echo 'export PATH=/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/cuquantum/bin' >> /opt/cuquantum-env/activate_cuquantum.sh && \
     chmod +x /opt/cuquantum-env/activate_cuquantum.sh
 
 COPY qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl /opt/
