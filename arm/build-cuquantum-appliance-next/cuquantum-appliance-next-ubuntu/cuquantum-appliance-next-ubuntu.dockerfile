@@ -42,9 +42,6 @@ RUN chmod +x /opt/aptscript/install_packages.sh
 # Run the install script with the necessary variables
 RUN /bin/bash -c "/opt/aptscript/install_packages.sh"
 
-COPY install_dependencies.sh /opt/aptscript/install_dependencies.sh
-RUN chmod +x  /opt/aptscript/install_dependencies.sh &&  /opt/aptscript/install_dependencies.sh
-
 
 # Install GDRCopy
 RUN mkdir -p /var/tmp && cd /var/tmp && \
@@ -103,48 +100,50 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     cd && rm -rf /var/tmp/* && \
     update-alternatives --install /usr/local/slurm slurm /usr/slurm-23.11.1 100
 
+COPY install_dependencies.sh /opt/aptscript/install_dependencies.sh
+RUN chmod +x  /opt/aptscript/install_dependencies.sh &&  /opt/aptscript/install_dependencies.sh
+    
 
-# RUN apt-get install -y --no-install-recommends openmpi-bin openmpi-common libopenmpi-dev
 
-# Create links for UCX and OpenMPI
-RUN for package in 'ucx' 'ucx-cuda'; do \
-        echo "Processing package: ${package}"; \
-        name="${package%-*}"; \
-        for target in '/bin/' '/lib/' '/include/'; do \
-            echo "Processing target: ${target}"; \
-            dpkg -L "${package}" | grep -E "${target}" | while read -r file; do \
-                if [ -f "${file}" ]; then \
-                    echo "Linking file: ${file}" && \
-                    mkdir -p "$(dirname "/usr/${name}${target}${file#*${target}}")" && \
-                    ln -s "${file}" "/usr/${name}${target}${file#*${target}}"; \
-                fi; \
-            done; \
-        done; \
-    done
+# # Create links for UCX and OpenMPI
+# RUN for package in 'ucx' 'ucx-cuda'; do \
+#         echo "Processing package: ${package}"; \
+#         name="${package%-*}"; \
+#         for target in '/bin/' '/lib/' '/include/'; do \
+#             echo "Processing target: ${target}"; \
+#             dpkg -L "${package}" | grep -E "${target}" | while read -r file; do \
+#                 if [ -f "${file}" ]; then \
+#                     echo "Linking file: ${file}" && \
+#                     mkdir -p "$(dirname "/usr/${name}${target}${file#*${target}}")" && \
+#                     ln -s "${file}" "/usr/${name}${target}${file#*${target}}"; \
+#                 fi; \
+#             done; \
+#         done; \
+#     done
 
-RUN /bin/bash -c ' \
-    base_path=$(ls -d /usr/mpi/gcc/openmpi-* 2>/dev/null | head -n 1) && \
-    if [ -z "$base_path" ]; then \
-        echo "Error: No OpenMPI installation found in /usr/mpi/gcc/openmpi-*/" && \
-        exit 1; \
-    fi && \
-    echo "Using OpenMPI base path: $base_path" && \
-    for package in openmpi; do \
-        for target in bin lib include; do \
-            src_path="${base_path}/${target}" && \
-            dest_path="/usr/${package}/${target}" && \
-            if [ -d "${src_path}" ]; then \
-                mkdir -p "${dest_path}" && \
-                for file in "${src_path}"/*; do \
-                    if [ -f "${file}" ] || [ -L "${file}" ]; then \
-                        ln -s "${file}" "${dest_path}/$(basename "${file}")"; \
-                    fi; \
-                done; \
-            fi; \
-        done; \
-    done && \
-    update-alternatives --install /usr/local/mpi mpi /usr/openmpi 100 &&\
-    update-alternatives --install /usr/local/ucx ucx /usr/ucx 100' 
+# RUN /bin/bash -c ' \
+#     base_path=$(ls -d /usr/mpi/gcc/openmpi-* 2>/dev/null | head -n 1) && \
+#     if [ -z "$base_path" ]; then \
+#         echo "Error: No OpenMPI installation found in /usr/mpi/gcc/openmpi-*/" && \
+#         exit 1; \
+#     fi && \
+#     echo "Using OpenMPI base path: $base_path" && \
+#     for package in openmpi; do \
+#         for target in bin lib include; do \
+#             src_path="${base_path}/${target}" && \
+#             dest_path="/usr/${package}/${target}" && \
+#             if [ -d "${src_path}" ]; then \
+#                 mkdir -p "${dest_path}" && \
+#                 for file in "${src_path}"/*; do \
+#                     if [ -f "${file}" ] || [ -L "${file}" ]; then \
+#                         ln -s "${file}" "${dest_path}/$(basename "${file}")"; \
+#                     fi; \
+#                 done; \
+#             fi; \
+#         done; \
+#     done && \
+#     update-alternatives --install /usr/local/mpi mpi /usr/openmpi 100 &&\
+#     update-alternatives --install /usr/local/ucx ucx /usr/ucx 100' 
 
 RUN apt-get update &&\
     apt-get install -y --no-install-recommends libtbb-dev

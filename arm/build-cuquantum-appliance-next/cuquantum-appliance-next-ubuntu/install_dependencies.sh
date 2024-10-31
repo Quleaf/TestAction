@@ -2,95 +2,106 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-# # add Mellanox OFED 
-# wget -O- https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | gpg --dearmor | tee /usr/share/keyrings/mlnx_ofed-archive-keyring.gpg > /dev/null
+sudo apt-get update
+sudo apt-get install -y \
+    build-essential \
+    wget \
+    tar \
+    ca-certificates \
+    numactl \
+    libnuma-dev \
+    libhwloc-dev \
+    gcc \
+    g++ \
+    make \
+    lsb-release \
+    pciutils \
+    ibverbs-providers \
+    libibverbs-dev \
+    rdma-core \
+    software-properties-common \
+    openssh-client \
+    chrpath \
+    libgfortran5 \
+    debhelper \
+    graphviz \
+    lsof \
+    tk \
+    gfortran \
+    libusb-1.0-0 \
+    kmod \
+    swig \
+    pkg-config \
+    flex \
+    tcl \
+    bison \
+    libfuse2
 
-# echo 'deb [signed-by=/usr/share/keyrings/mlnx_ofed-archive-keyring.gpg] http://linux.mellanox.com/public/repo/mlnx_ofed/23.07-0.5.1.2/ubuntu22.04/aarch64/ ./' > /etc/apt/sources.list.d/mellanox_mlnx_ofed.list
+# install CUDA 12.6
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+sudo apt-get install -y cuda-toolkit-12-6
+rm cuda-keyring_1.1-1_all.deb
 
-# # unset DEBIAN_FRONTEND
-# unset DEBIAN_FRONTEND
+# set CUDA 
+export CUDA_HOME=/usr/local/cuda-12.6
+export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:$LD_LIBRARY_PATH
+export PATH=${CUDA_HOME}/bin:$PATH
 
-# # remove old version of Mellanox OFED
-# apt-get update --yes && \
-# apt-get remove --yes \
-#     libipathverbs1 \
-#     librdmacm1 \
-#     libibverbs1 \
-#     libmthca1 \
-#     libopenmpi-dev \
-#     openmpi-bin \
-#     openmpi-common \
-#     openmpi-doc \
-#     libmlx4-1 \
-#     rdmacm-utils \
-#     ibverbs-utils \
-#     infiniband-diags \
-#     ibutils \
-#     perftest
+# set HPC-X download URL
+export HPCX_VERSION=v2.20
+export HPCX_PACKAGE=hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64.tbz
+export HPCX_DOWNLOAD_URL=https://content.mellanox.com/hpc/hpc-x/${HPCX_VERSION}/${HPCX_PACKAGE}
 
-# # install necessary packages
-# apt-get update && \
-# apt-get install -y ibverbs-providers openssl libssl-dev openssh-client openssh-server
-#wget https://launchpad.net/ubuntu/+archive/primary/+files/libucx0_1.16.0+ds-5ubuntu1_arm64.deb && \
-#dpkg -i libucx0_1.16.0+ds-5ubuntu1_arm64.deb || apt-get install -f -y && \
-#rm -f libucx0_1.16.0+ds-5ubuntu1_arm64.deb
+# download and set HPC-X
+sudo mkdir -p /opt
+cd /opt
+sudo wget ${HPCX_DOWNLOAD_URL}
+sudo tar -xvf $(basename ${HPCX_DOWNLOAD_URL})
+sudo rm $(basename ${HPCX_DOWNLOAD_URL})
+sudo mv hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64 hpcx
+sudo chmod o+w hpcx
 
-# install Mellanox OFED and nvdia driver
-# apt-get update && apt-get install -y --no-install-recommends libnvidia-compute-560=560.35.03-0ubuntu1
+# set HPCX_HOME
+export HPCX_HOME=/opt/hpcx
 
-#Here OpenMPI has been installed as a dependency of Mellanox OFED
-#apt-get install -y --no-install-recommends mlnx-ofed-all  
-#apt-get install -y --no-install-recommends ucx-cuda
+# set other related environment variables
+export HPCX_DIR=${HPCX_HOME}
+export HPCX_UCX_DIR=${HPCX_HOME}/ucx
+export HPCX_UCC_DIR=${HPCX_HOME}/ucc
+export HPCX_SHARP_DIR=${HPCX_HOME}/sharp
+export HPCX_HCOLL_DIR=${HPCX_HOME}/hcoll
+export HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR=${HPCX_HOME}/nccl_rdma_sharp_plugin
+export HPCX_MPI_DIR=${HPCX_HOME}/ompi
+export HPCX_OSHMEM_DIR=${HPCX_HOME}/ompi
+export HPCX_MPI_TESTS_DIR=${HPCX_HOME}/ompi/tests
+export HPCX_OSU_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks
+export HPCX_OSU_CUDA_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks-cuda
+export OPAL_PREFIX=${HPCX_HOME}/ompi
+export PMIX_INSTALL_PREFIX=${HPCX_HOME}/ompi  # 以后可删除
+export OMPI_HOME=${HPCX_HOME}/ompi
+export MPI_HOME=${HPCX_HOME}/ompi
+export OSHMEM_HOME=${HPCX_HOME}/ompi
+export SHMEM_HOME=${HPCX_HOME}/ompi
 
+# update PATH
+export PATH=${HPCX_UCX_DIR}/bin:${HPCX_UCC_DIR}/bin:${HPCX_HCOLL_DIR}/bin:${HPCX_SHARP_DIR}/bin:${HPCX_MPI_TESTS_DIR}/imb:${HPCX_HOME}/clusterkit/bin:${HPCX_MPI_DIR}/bin:$PATH
 
-apt-get update 
-apt-get install -y --no-install-recommends \
-udev \
-pciutils \
-tk \
-libnl-route-3-200 \
-libfuse2 \
-debhelper \
-libnl-3-200 \
-ethtool \
-gfortran \
-lsof \
-libltdl-dev \
-libpci3 \
-libnl-route-3-dev \
-libusb-1.0-0 \
-pkg-config \
-graphviz \
-tcl \
-swig \
-chrpath \
-libnl-3-dev \
-libmnl0 \
-bison \
-kmod \
-libnvidia-compute-535 
-rm -rf /var/lib/apt/lists/*
+# update LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/lib:${HPCX_UCC_DIR}/lib/ucc:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:${HPCX_MPI_DIR}/lib:$LD_LIBRARY_PATH
 
-# Install MLNX OFED (user-space only)
-# Set MLNX OFED version and download URL
-MLNX_OFED_VERSION=23.10-3.2.2.0
-MLNX_OFED_PACKAGE=MLNX_OFED_LINUX-${MLNX_OFED_VERSION}-ubuntu22.04-aarch64.tgz
-MLNX_OFED_DOWNLOAD_URL=https://content.mellanox.com/ofed/MLNX_OFED-${MLNX_OFED_VERSION}/${MLNX_OFED_PACKAGE}
+# update LIBRARY_PATH
+export LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCC_DIR}/lib:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:$LIBRARY_PATH
 
-# Download and extract MLNX OFED
-mkdir -p /tmp/MLNX_OFED 
-cd /tmp && \
-wget ${MLNX_OFED_DOWNLOAD_URL} 
-tar -xzf ${MLNX_OFED_PACKAGE} -C /tmp/MLNX_OFED --strip-components=1 
-rm ${MLNX_OFED_PACKAGE}
+# update CPATH
+export CPATH=${HPCX_HCOLL_DIR}/include:${HPCX_SHARP_DIR}/include:${HPCX_UCX_DIR}/include:${HPCX_UCC_DIR}/include:${HPCX_MPI_DIR}/include:$CPATH
 
-# Install MLNX OFED user-space components
-cd /tmp/MLNX_OFED/MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-aarch64 
-./mlnxofedinstall --user-space-only --without-fw-update --all --force
+# update PKG_CONFIG_PATH
+export PKG_CONFIG_PATH=${HPCX_HCOLL_DIR}/lib/pkgconfig:${HPCX_SHARP_DIR}/lib/pkgconfig:${HPCX_UCX_DIR}/lib/pkgconfig:${HPCX_MPI_DIR}/lib/pkgconfig:$PKG_CONFIG_PATH
 
-# Clean up MLNX OFED installation files
-rm -rf /tmp/MLNX_OFED
-
+# update MANPATH
+export MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH
 
 # Clean up
 apt-get clean
