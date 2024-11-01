@@ -158,7 +158,7 @@ ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH
 #     done
 
 RUN /bin/bash -c ' \
-    base_path=$(ls -d /opt/hpcx/ompi/ 2>/dev/null | head -n 1) && \
+    base_path=$(ls -d /opt/hpcx/ompi 2>/dev/null | head -n 1) && \
     if [ -z "$base_path" ]; then \
         echo "Error: No OpenMPI installation found in /opt/hpcx/ompi/" && \
         exit 1; \
