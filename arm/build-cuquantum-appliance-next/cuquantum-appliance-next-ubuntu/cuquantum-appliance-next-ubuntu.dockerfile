@@ -205,8 +205,8 @@ RUN python -m venv --system-site-packages /opt/cuquantum-env && \
     . /opt/cuquantum-env/bin/activate &&\
     pip install --upgrade pip && \
     pip install 'cryptography~=43.0' 'setuptools' 'urllib3==1.26.5' 'packaging'\
-     'httpx' 'wheel' 'mpmath==1.3.0' 'pyjwt==2.4.0'  &&\
-#     'mpi4py' &&\
+     'httpx' 'wheel' 'mpmath==1.3.0' 'pyjwt==2.4.0'  \
+     'mpi4py' &&\
     rm -rf /root/.cache/pip
 
 
