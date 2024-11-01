@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
-LABEL org.opencontainers.image.devmode=false
+LABEL org.opencontainers.image.devmode=true
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
@@ -103,8 +103,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 COPY install_dependencies.sh /opt/aptscript/install_dependencies.sh
 RUN chmod +x  /opt/aptscript/install_dependencies.sh &&  /opt/aptscript/install_dependencies.sh
     
-ENV HPCX_HOME=/opt/hpcx \
-    HPCX_DIR=${HPCX_HOME} \
+ENV HPCX_HOME=/opt/hpcx 
+ENV HPCX_DIR=${HPCX_HOME} \
     HPCX_UCX_DIR=${HPCX_HOME}/ucx \
     HPCX_UCC_DIR=${HPCX_HOME}/ucc \
     HPCX_SHARP_DIR=${HPCX_HOME}/sharp \
