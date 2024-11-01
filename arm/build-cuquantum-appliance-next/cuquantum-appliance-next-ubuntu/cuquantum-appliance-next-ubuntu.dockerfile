@@ -157,28 +157,28 @@ ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH
 #         done; \
 #     done
 
-# RUN /bin/bash -c ' \
-#     base_path=$(ls -d /usr/mpi/gcc/openmpi-* 2>/dev/null | head -n 1) && \
-#     if [ -z "$base_path" ]; then \
-#         echo "Error: No OpenMPI installation found in /usr/mpi/gcc/openmpi-*/" && \
-#         exit 1; \
-#     fi && \
-#     echo "Using OpenMPI base path: $base_path" && \
-#     for package in openmpi; do \
-#         for target in bin lib include; do \
-#             src_path="${base_path}/${target}" && \
-#             dest_path="/usr/${package}/${target}" && \
-#             if [ -d "${src_path}" ]; then \
-#                 mkdir -p "${dest_path}" && \
-#                 for file in "${src_path}"/*; do \
-#                     if [ -f "${file}" ] || [ -L "${file}" ]; then \
-#                         ln -s "${file}" "${dest_path}/$(basename "${file}")"; \
-#                     fi; \
-#                 done; \
-#             fi; \
-#         done; \
-#     done && \
-#     update-alternatives --install /usr/local/mpi mpi /usr/openmpi 100 &&\
+RUN /bin/bash -c ' \
+    base_path=$(ls -d /opt/hpcx/ompi/ 2>/dev/null | head -n 1) && \
+    if [ -z "$base_path" ]; then \
+        echo "Error: No OpenMPI installation found in /opt/hpcx/ompi/" && \
+        exit 1; \
+    fi && \
+    echo "Using OpenMPI base path: $base_path" && \
+    for package in openmpi; do \
+        for target in bin lib include; do \
+            src_path="${base_path}/${target}" && \
+            dest_path="/usr/${package}/${target}" && \
+            if [ -d "${src_path}" ]; then \
+                mkdir -p "${dest_path}" && \
+                for file in "${src_path}"/*; do \
+                    if [ -f "${file}" ] || [ -L "${file}" ]; then \
+                        ln -s "${file}" "${dest_path}/$(basename "${file}")"; \
+                    fi; \
+                done; \
+            fi; \
+        done; \
+    done && \
+    update-alternatives --install /usr/local/mpi mpi /usr/openmpi 100 '
 #     update-alternatives --install /usr/local/ucx ucx /usr/ucx 100' 
 
 RUN apt-get update &&\
