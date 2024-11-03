@@ -1,4 +1,14 @@
 FROM ubuntu:22.04
+# This is a Dockerfile for building a container image for HPC-X on ARM architecture
+# As MPI is used, we need to bind some folders from the host to the container.
+# You do not need to source ./hpcx-mt-ompi and hpcx_load. All the valuable has been set in the env file.
+# mpirun -np 4 singularity exec --nv \
+#     -B /run/slurm:/run/slurm \
+#     -B /etc/slurm:/etc/slurm \
+#      -B /run/munge:/run/munge\
+#        -B /software:/software\
+#    --env-file hpcx-mt-ompi.env\
+#     hpcx-ubuntu-arm.sif bash -c  "xxx"
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto

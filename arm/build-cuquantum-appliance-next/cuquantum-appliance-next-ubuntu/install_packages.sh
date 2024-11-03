@@ -40,6 +40,7 @@ apt-get install -y --no-install-recommends \
     vim \
     ninja-build \
     libblas-dev libopenblas-dev \
+    libtbb-dev\
     python${PY_VERSION}-dev \
     python${PY_VERSION}-distutils \
     python${PY_VERSION}-full
