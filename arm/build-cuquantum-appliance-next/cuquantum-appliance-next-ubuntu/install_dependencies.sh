@@ -2,20 +2,18 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-
-
 sudo apt-get update
-sudo apt-get install -y \    
+sudo apt-get install -y --no-install-recommends \
     libhwloc-dev \
     lsb-release \
     pciutils \
     ibverbs-providers \
     libibverbs-dev \
     rdma-core \
-    software-properties-common \    
+    software-properties-common \
     libgfortran5 \
     debhelper \
-    graphviz \    
+    graphviz \
     tk \
     libusb-1.0-0 \
     kmod \
