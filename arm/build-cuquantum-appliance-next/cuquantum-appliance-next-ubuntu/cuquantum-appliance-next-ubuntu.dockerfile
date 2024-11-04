@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
-LABEL org.opencontainers.image.devmode=true
+LABEL org.opencontainers.image.devmode=false
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
@@ -232,9 +232,9 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
     echo 'export LD_LIBRARY_PATH=${BASE_LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
     echo 'export LD_PRELOAD=${BASE_LD_PRELOAD}' >> /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
-    echo 'unset BASE_LD_LIBRARY_PATH' >> /opt/cuquantum-source/dcuquantum-env/eactivate_cuquantum.sh && \
+    echo 'unset BASE_LD_LIBRARY_PATH' >> /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
     echo 'unset BASE_LD_PRELOAD' >> /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
     chmod +x /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh
 
 # Set entrypoint to activate the environment on container start
-# ENTRYPOINT ["/opt/cuquantum-env/activate_cuquantum.sh"]
+ENTRYPOINT ["/opt/cuquantum-env/activate_cuquantum.sh"]
