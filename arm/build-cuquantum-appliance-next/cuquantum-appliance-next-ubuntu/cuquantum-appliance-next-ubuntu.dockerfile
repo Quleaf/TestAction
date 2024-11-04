@@ -208,20 +208,20 @@ RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-source/cuquantum-
     
 
 # Prepare activation script
-RUN echo '#!/bin/bash' > /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo '. /opt/cuquantum-env/bin/activate' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export CUDA_PATH=/usr/local/cuda' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export BASE_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export BASE_LD_PRELOAD=${LD_PRELOAD}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export LD_LIBRARY_PATH=/opt/cuquantum-env/lib:${LD_LIBRARY_PATH}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1:${LD_PRELOAD}' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export CUQUANTUM_ROOT=/opt/cuquantum'>> /opt/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export CUTENSOR_ROOT=/opt/cuquantum'>> /opt/cuquantum-env/activate_cuquantum.sh && \
-#    echo 'export MPI_PATH=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
+RUN echo '#!/bin/bash' > /opt/cuquantum-env/cuquantum-source/activate_cuquantum.sh && \
+    echo '. /opt/cuquantum-env/bin/activate' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export CUDA_PATH=/usr/local/cuda' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export BASE_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export BASE_LD_PRELOAD=${LD_PRELOAD}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export LD_LIBRARY_PATH=/opt/cuquantum-env/lib:${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1:${LD_PRELOAD}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export CUQUANTUM_ROOT=/opt/cuquantum'>> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export CUTENSOR_ROOT=/opt/cuquantum'>> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+#    echo 'export MPI_PATH=/usr/local/mpi' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
 #   for cutensornet samples require MPI_ROOT   
-#    echo 'export MPI_ROOT=/usr/local/mpi' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-#    echo 'export PATH=/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/cuquantum/bin' >> /opt/cuquantum-env/activate_cuquantum.sh && \
-    chmod +x /opt/cuquantum-env/activate_cuquantum.sh
+#    echo 'export MPI_ROOT=/usr/local/mpi' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+#    echo 'export PATH=/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/cuquantum/bin' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    chmod +x /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh
 
 
 
@@ -229,12 +229,12 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-env/activate_cuquantum.sh && \
 
 
 # Configure deactivate script
-RUN echo '#!/bin/bash' > /opt/cuquantum-env/deactivate_cuquantum.sh && \
-    echo 'export LD_LIBRARY_PATH=${BASE_LD_LIBRARY_PATH}' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
-    echo 'export LD_PRELOAD=${BASE_LD_PRELOAD}' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
-    echo 'unset BASE_LD_LIBRARY_PATH' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
-    echo 'unset BASE_LD_PRELOAD' >> /opt/cuquantum-env/deactivate_cuquantum.sh && \
-    chmod +x /opt/cuquantum-env/deactivate_cuquantum.sh
+RUN echo '#!/bin/bash' > /opt/cuquantum-env/cuquantum-source/deactivate_cuquantum.sh && \
+    echo 'export LD_LIBRARY_PATH=${BASE_LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
+    echo 'export LD_PRELOAD=${BASE_LD_PRELOAD}' >> /opt/cuquantum-env/cuquantum-source/deactivate_cuquantum.sh && \
+    echo 'unset BASE_LD_LIBRARY_PATH' >> /opt/cuquantum-env/cuquantum-source/deactivate_cuquantum.sh && \
+    echo 'unset BASE_LD_PRELOAD' >> /opt/cuquantum-env/cuquantum-source/deactivate_cuquantum.sh && \
+    chmod +x /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh
 
 # Set entrypoint to activate the environment on container start
 # ENTRYPOINT ["/opt/cuquantum-env/activate_cuquantum.sh"]
