@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.version="04-11-2024"
-LABEL org.opencontainers.image.minversion="0.1.1"
+LABEL org.opencontainers.image.minversion="0.1.2"
 
 ARG PY_VERSION="3.12"
 ARG CUDA_VERSION="12.6.0"
