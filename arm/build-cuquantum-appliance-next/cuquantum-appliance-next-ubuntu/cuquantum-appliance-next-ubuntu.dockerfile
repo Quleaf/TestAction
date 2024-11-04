@@ -206,7 +206,6 @@ RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-source/cuquantum-
     ln -s /opt/cuquantum/lib/libcutensornet.so.2 /opt/cuquantum-source/cuquantum-env/lib/libcutensornet.so.2 &&\
     ln -s /opt/cuquantum/lib/libcutensornet.so.2 /opt/cuquantum-source/cuquantum-env/lib/libcutensornet.so 
     
-
 # Prepare activation script
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo '. /opt/cuquantum-env/bin/activate' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
@@ -223,11 +222,6 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.
 #    echo 'export PATH=/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/cuquantum/bin' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     chmod +x /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh
 
-
-
-
-
-
 # Configure deactivate script
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
     echo 'export LD_LIBRARY_PATH=${BASE_LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
@@ -236,5 +230,13 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/deactivate_cuquantu
     echo 'unset BASE_LD_PRELOAD' >> /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh && \
     chmod +x /opt/cuquantum-source/cuquantum-env/deactivate_cuquantum.sh
 
+# Copy the Dockerfile and environment files for Ella to the container
+# For reference, we copy all the dockerfiles in this topic to the container
+RUN mkdir -p /opt/docker-recipes
+COPY *.dockerfile /opt/docker-recipes
+COPY *.env /opt/docker-recipes
+COPY *.sh /opt/docker-recipes
+COPY *.whl /opt/docker-recipes
+
 # Set entrypoint to activate the environment on container start
-ENTRYPOINT ["/opt/cuquantum-env/activate_cuquantum.sh"]
+ENTRYPOINT ["/opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh"]
