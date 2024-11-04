@@ -8,7 +8,7 @@ sudo apt-get install -y --no-install-recommends \
     lsb-release \
     pciutils \
     ibverbs-providers \
-    libibverbs-dev \
+    libibverbs1 libibverbs-dev ibverbs-utils infiniband-diags perftest \
     rdma-core \
     libgfortran5 \
     debhelper \
