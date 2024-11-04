@@ -2,37 +2,25 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
+
+
 sudo apt-get update
-sudo apt-get install -y \
-    build-essential \
-    wget \
-    tar \
-    ca-certificates \
-    numactl \
-    libnuma-dev \
+sudo apt-get install -y \    
     libhwloc-dev \
-    gcc \
-    g++ \
-    make \
     lsb-release \
     pciutils \
     ibverbs-providers \
     libibverbs-dev \
     rdma-core \
-    software-properties-common \
-    openssh-client \
-    chrpath \
+    software-properties-common \    
     libgfortran5 \
     debhelper \
-    graphviz \
-    lsof \
+    graphviz \    
     tk \
-    gfortran \
     libusb-1.0-0 \
     kmod \
     swig \
     pkg-config \
-    flex \
     tcl \
     bison \
     libfuse2
@@ -57,7 +45,7 @@ export HPCX_DOWNLOAD_URL=https://content.mellanox.com/hpc/hpc-x/${HPCX_VERSION}/
 # download and set HPC-X
 sudo mkdir -p /opt
 cd /opt
-sudo wget ${HPCX_DOWNLOAD_URL}
+sudo wget -q ${HPCX_DOWNLOAD_URL}
 sudo tar -xvf $(basename ${HPCX_DOWNLOAD_URL})
 sudo rm $(basename ${HPCX_DOWNLOAD_URL})
 sudo mv hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64 hpcx

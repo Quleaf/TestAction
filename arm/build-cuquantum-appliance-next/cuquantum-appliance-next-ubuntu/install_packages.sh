@@ -16,6 +16,7 @@ apt-get install -y --no-install-recommends \
     libc6 \
     libc-bin \
     libnuma-dev \
+    lsof \
     coreutils \
     autoconf \
     automake \
@@ -36,7 +37,9 @@ apt-get install -y --no-install-recommends \
     libtool \
     make \
     cmake \
+    chrpath \
     openssh-server \
+    openssh-client \
     vim \
     ninja-build \
     libblas-dev libopenblas-dev \
@@ -44,6 +47,10 @@ apt-get install -y --no-install-recommends \
     python${PY_VERSION}-dev \
     python${PY_VERSION}-distutils \
     python${PY_VERSION}-full
+
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 
+update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 
+update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-13 100
 
 # NVIDIA CUDA and associated packages
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb
@@ -60,6 +67,7 @@ apt-get install -y --no-install-recommends \
     libcublas-dev-12-6=12.6.0.22-1 \
     libnccl-dev=2.23.4-1+cuda12.6 \
     cuda-nsight-compute-12-6=${NV_CUDA_LIB_VERSION}
+
 
 # Clean up
 apt-get clean

@@ -171,19 +171,19 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install cuQuantum binary without examples
-RUN wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz \
+RUN wget -q https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz \
     && mkdir -p /opt/cuquantum \
     && chmod -R 755 /opt/cuquantum \
-    && tar -xvf cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz -C /opt/cuquantum --strip-components=1 \
+    && tar -xf cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz -C /opt/cuquantum --strip-components=1 \
     && rm cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz \
     && cd /opt/cuquantum/distributed_interfaces \
     && sh activate_mpi.sh
 # Check the folder structure of cuquantum
 
 # download cuQuantum source code
-RUN wget https://github.com/NVIDIA/cuQuantum/archive/refs/tags/v24.08.0.tar.gz &&\
+RUN wget -q https://github.com/NVIDIA/cuQuantum/archive/refs/tags/v24.08.0.tar.gz &&\
     mkdir -p /opt/cuquantum-source &&\
-    tar -xvf v24.08.0.tar.gz -C /opt/cuquantum-source --strip-components=1 &&\
+    tar -xf v24.08.0.tar.gz -C /opt/cuquantum-source --strip-components=1 &&\
     rm v24.08.0.tar.gz 
 
 # Install cuQuantum python package
