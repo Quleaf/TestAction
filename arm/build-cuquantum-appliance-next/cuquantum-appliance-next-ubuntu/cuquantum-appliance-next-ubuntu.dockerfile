@@ -30,9 +30,9 @@ ENV NV_LIBNCCL_PACKAGE="libnccl2=2.19.3-1+cuda12.2"
 ENV NCCL_VERSION="2.19.3-1"
 ENV TERM="xterm-256color"
 ENV PATH="/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-ENV CPATH="/usr/local/mpi/include:/usr/local/ucx/include:/usr/local/gdrcopy/include:/usr/local/munge/include:/usr/local/pmix/include:/usr/local/slurm/include"
+ENV CPATH="/usr/include:/usr/local/mpi/include:/usr/local/ucx/include:/usr/local/gdrcopy/include:/usr/local/munge/include:/usr/local/pmix/include:/usr/local/slurm/include"
 ENV LD_LIBRARY_PATH="/usr/local/mpi/lib:/usr/local/ucx/lib:/usr/local/gdrcopy/lib:/usr/local/munge/lib:/usr/local/pmix/lib:/usr/local/slurm/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
-ENV LIBRARY_PATH="/usr/local/cuda/lib64/stubs"
+ENV LIBRARY_PATH="/usr/lib:/usr/local/cuda/lib64/stubs"
 ENV CUQUANTUM_ROOT="/opt/cuquantum"
 ENV CUTENSORNET_COMM_LIB="/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_mpi.so"
 
@@ -120,21 +120,21 @@ ENV HPCX_DIR=${HPCX_HOME} \
     OMPI_HOME=${HPCX_HOME}/ompi \
     MPI_HOME=${HPCX_HOME}/ompi \
     OSHMEM_HOME=${HPCX_HOME}/ompi \
-    SHMEM_HOME=${HPCX_HOME}/ompi
+    SHMEM_HOME=${HPCX_HOME}/ompi \
+    MPI_PATH=${HPCX_HOME}/ompi
 
 # Update PATH
-ENV PATH=${HPCX_UCX_DIR}/bin:${HPCX_UCC_DIR}/bin:${HPCX_HCOLL_DIR}/bin:${HPCX_SHARP_DIR}/bin:${HPCX_MPI_TESTS_DIR}/imb:${HPCX_HOME}/clusterkit/bin:${HPCX_MPI_DIR}/bin:$PATH
-ENV LD_LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/lib:${HPCX_UCC_DIR}/lib/ucc:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:${HPCX_MPI_DIR}/lib:$LD_LIBRARY_PATH
+ENV CUDA_HOME=/usr/local/cuda-12.6
+ENV CUDA_PATH=/usr/local/cuda
+ENV PATH=${CUDA_HOME}/bin:${HPCX_UCX_DIR}/bin:${HPCX_UCC_DIR}/bin:${HPCX_HCOLL_DIR}/bin:${HPCX_SHARP_DIR}/bin:${HPCX_MPI_TESTS_DIR}/imb:${HPCX_HOME}/clusterkit/bin:${HPCX_MPI_DIR}/bin:$PATH
+ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/lib:${HPCX_UCC_DIR}/lib/ucc:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:${HPCX_MPI_DIR}/lib:$LD_LIBRARY_PATH
 ENV LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCC_DIR}/lib:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:$LIBRARY_PATH
 ENV CPATH=${HPCX_HCOLL_DIR}/include:${HPCX_SHARP_DIR}/include:${HPCX_UCX_DIR}/include:${HPCX_UCC_DIR}/include:${HPCX_MPI_DIR}/include:$CPATH
 ENV PKG_CONFIG_PATH=${HPCX_HCOLL_DIR}/lib/pkgconfig:${HPCX_SHARP_DIR}/lib/pkgconfig:${HPCX_UCX_DIR}/lib/pkgconfig:${HPCX_MPI_DIR}/lib/pkgconfig:$PKG_CONFIG_PATH
 ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH 
 
-ENV CUDA_HOME=/usr/local/cuda-12.6
 
-ENV CUDA_PATH=/usr/local/cuda
-ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:$LD_LIBRARY_PATH
-ENV PATH=${CUDA_HOME}/bin:$PATH
+
 
 # Create a symbolic link to the OpenMPI installation
 RUN /bin/bash -c ' \
@@ -208,7 +208,7 @@ RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-source/cuquantum-
     
 # Prepare activation script
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo '. /opt/cuquantum-env/bin/activate' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo '. /opt/cuquantum-source/cuquantum-env/bin/activate' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export CUDA_PATH=/usr/local/cuda' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export BASE_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export BASE_LD_PRELOAD=${LD_PRELOAD}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
