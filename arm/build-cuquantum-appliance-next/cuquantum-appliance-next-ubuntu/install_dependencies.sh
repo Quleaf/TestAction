@@ -10,7 +10,6 @@ sudo apt-get install -y --no-install-recommends \
     ibverbs-providers \
     libibverbs-dev \
     rdma-core \
-    software-properties-common \
     libgfortran5 \
     debhelper \
     graphviz \
@@ -23,12 +22,7 @@ sudo apt-get install -y --no-install-recommends \
     bison \
     libfuse2
 
-# install CUDA 12.6
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb
-sudo dpkg -i cuda-keyring_1.1-1_all.deb
-sudo apt-get update
-sudo apt-get install -y cuda-toolkit-12-6
-rm cuda-keyring_1.1-1_all.deb
+
 
 # set CUDA 
 export CUDA_HOME=/usr/local/cuda-12.6
@@ -44,7 +38,7 @@ export HPCX_DOWNLOAD_URL=https://content.mellanox.com/hpc/hpc-x/${HPCX_VERSION}/
 sudo mkdir -p /opt
 cd /opt
 sudo wget -q ${HPCX_DOWNLOAD_URL}
-sudo tar -xvf $(basename ${HPCX_DOWNLOAD_URL})
+sudo tar -xf $(basename ${HPCX_DOWNLOAD_URL})
 sudo rm $(basename ${HPCX_DOWNLOAD_URL})
 sudo mv hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64 hpcx
 sudo chmod o+w hpcx
