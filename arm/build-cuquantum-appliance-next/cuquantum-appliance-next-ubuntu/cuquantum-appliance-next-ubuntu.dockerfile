@@ -128,7 +128,13 @@ ENV LD_LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/
 ENV LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCC_DIR}/lib:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:$LIBRARY_PATH
 ENV CPATH=${HPCX_HCOLL_DIR}/include:${HPCX_SHARP_DIR}/include:${HPCX_UCX_DIR}/include:${HPCX_UCC_DIR}/include:${HPCX_MPI_DIR}/include:$CPATH
 ENV PKG_CONFIG_PATH=${HPCX_HCOLL_DIR}/lib/pkgconfig:${HPCX_SHARP_DIR}/lib/pkgconfig:${HPCX_UCX_DIR}/lib/pkgconfig:${HPCX_MPI_DIR}/lib/pkgconfig:$PKG_CONFIG_PATH
-ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH  
+ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH 
+
+ENV CUDA_HOME=/usr/local/cuda-12.6
+
+ENV CUDA_PATH=/usr/local/cuda
+ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:$LD_LIBRARY_PATH
+ENV PATH=${CUDA_HOME}/bin:$PATH
 
 # Create a symbolic link to the OpenMPI installation
 RUN /bin/bash -c ' \
