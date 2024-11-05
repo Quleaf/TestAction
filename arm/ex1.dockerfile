@@ -5,7 +5,10 @@ FROM ubuntu:20.04
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
+LABEL org.opencontainers.image.noscan=true
+LABEL org.opencontainers.image.minversion="0.0.1"
 
+ENV MYVALUE="VALUE1"
 # Install curl package
 #RUN apk add --no-cache curl
 
@@ -15,4 +18,4 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Define the command that will run when the container starts
-CMD ["echo", "Hello, World18.37!"]
+CMD ["echo", ${MYVALUE}]
