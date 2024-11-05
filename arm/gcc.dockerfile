@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.version="04-11-2024"
-LABEL org.opencontainers.image.minversion="0.1.5"
+LABEL org.opencontainers.image.minversion="0.1.6"
 LABEL org.opencontainers.image.noscan=true
 
 ARG PY_VERSION="3.12"
@@ -78,10 +78,7 @@ RUN apt-get update -qq && \
         libtbb-dev \
         python${PY_VERSION}-dev \
         python${PY_VERSION}-distutils \
-        python${PY_VERSION}-full \
-        gcc \
-        g++ \
-        gfortran && \
+        python${PY_VERSION}-full &&\
     apt-get install -y --no-install-recommends \
         libhwloc-dev \
         lsb-release \
