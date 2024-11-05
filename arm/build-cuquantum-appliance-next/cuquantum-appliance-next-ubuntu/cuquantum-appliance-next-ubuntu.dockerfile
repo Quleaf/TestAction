@@ -213,7 +213,7 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.
     echo 'export CUDA_PATH=/usr/local/cuda' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export BASE_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export BASE_LD_PRELOAD=${LD_PRELOAD}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export LD_LIBRARY_PATH=/opt/cuquantum-env/lib:${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo 'export LD_LIBRARY_PATH=/opt/cuquantum-source/cuquantum-env/lib:${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1:${LD_PRELOAD}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export CUQUANTUM_ROOT=/opt/cuquantum'>> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export CUTENSOR_ROOT=/opt/cuquantum'>> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \

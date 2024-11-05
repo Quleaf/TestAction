@@ -43,7 +43,7 @@ RUN apt-get update -qq && \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update -qq && \
     apt-get install -y --no-install-recommends \
-        build-essential \
+        #build-essential \
         ca-certificates \
         libc-dev-bin \
         libc6 \
@@ -82,7 +82,7 @@ RUN apt-get update -qq && \
         gcc \
         g++ \
         gfortran && \
-        apt-get install -y --no-install-recommends \
+    apt-get install -y --no-install-recommends \
         libhwloc-dev \
         lsb-release \
         pciutils \
@@ -102,6 +102,13 @@ RUN apt-get update -qq && \
         libfuse2 &&\
     rm -rf /var/lib/apt/lists/*
 
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test &&\
+apt-get update -qq &&\
+apt-get install -y --no-install-recommends gcc-13 g++-13 gfortran-13 &&\
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 &&\
+update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 &&\
+update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-13 100 &&\
+sudo add-apt-repository --remove ppa:ubuntu-toolchain-r/test
 
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION} 1 && \
