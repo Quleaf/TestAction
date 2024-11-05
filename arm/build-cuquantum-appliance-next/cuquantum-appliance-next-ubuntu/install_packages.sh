@@ -43,17 +43,18 @@ apt-get install -y --no-install-recommends \
     libtbb-dev\
     python${PY_VERSION}-dev \
     python${PY_VERSION}-distutils \
-    python${PY_VERSION}-full
+    python${PY_VERSION}-full\
+    gcc g++ gfortran 
 
-add-apt-repository ppa:ubuntu-toolchain-r/test
-apt-get update -qq
-apt-get install -y --no-install-recommends gcc-13 g++-13 gfortran-13
+# add-apt-repository ppa:ubuntu-toolchain-r/test
+# apt-get update -qq
+# apt-get install -y --no-install-recommends gcc-13 g++-13 gfortran-13
 
-update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 
-update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 
-update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-13 100
+# update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 
+# update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 
+# update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-13 100
 
-sudo add-apt-repository --remove ppa:ubuntu-toolchain-r/test
+# sudo add-apt-repository --remove ppa:ubuntu-toolchain-r/test
 
 # Set Python and Pip
 update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION} 1
