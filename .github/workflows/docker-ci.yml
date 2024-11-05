@@ -396,8 +396,8 @@ jobs:
     env:
      BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/${{ needs.PREPARE-job.outputs.date }}
-    environment:
-      name: manual_approval  
+    #environment:
+    #  name: manual_approval  
     steps:
       - name: Print hostname and set approved label for deployment
         id: set_approved_label
@@ -486,8 +486,8 @@ jobs:
     env:
       BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
       DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/${{ needs.PREPARE-job.outputs.date }}
-    environment:
-      name: manual_approval  
+    #environment:
+     # name: manual_approval  
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
