@@ -14,6 +14,7 @@ apt-get install -y --no-install-recommends \
     libc-dev-bin \
     libc6 \
     libc-bin \
+    libc-dev \
     libnuma-dev \
     lsof \
     coreutils \
@@ -59,21 +60,21 @@ update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION
 update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1
 curl https://bootstrap.pypa.io/get-pip.py | python -
 
-# NVIDIA CUDA and associated packages
-# wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb
-# dpkg -i cuda-keyring_1.1-1_all.deb
-# apt-get update
-# apt-get install -y --no-install-recommends \
-#     cuda-command-line-tools-12-6=${NV_CUDA_LIB_VERSION} \
-#     cuda-minimal-build-12-6=${NV_CUDA_LIB_VERSION} \
-#     cuda-libraries-dev-12-6=${NV_CUDA_LIB_VERSION} \
-#     cuda-nvml-dev-12-6=${NV_NVML_DEV_VERSION} \
-#     cuda-libraries-dev-12-6=${NV_CUDA_LIB_VERSION} \
-#     libnpp-dev-12-6=12.3.1.54-1\
-#     libcusparse-dev-12-6\
-#     libcublas-dev-12-6=12.6.0.22-1 \
-#     libnccl-dev=2.23.4-1+cuda12.6 \
-#     cuda-nsight-compute-12-6=${NV_CUDA_LIB_VERSION}
+NVIDIA CUDA and associated packages
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb
+dpkg -i cuda-keyring_1.1-1_all.deb
+apt-get update
+apt-get install -y --no-install-recommends \
+    cuda-command-line-tools-12-6=${NV_CUDA_LIB_VERSION} \
+    cuda-minimal-build-12-6=${NV_CUDA_LIB_VERSION} \
+    cuda-libraries-dev-12-6=${NV_CUDA_LIB_VERSION} \
+    cuda-nvml-dev-12-6=${NV_NVML_DEV_VERSION} \
+    cuda-libraries-dev-12-6=${NV_CUDA_LIB_VERSION} \
+    libnpp-dev-12-6=12.3.1.54-1\
+    libcusparse-dev-12-6\
+    libcublas-dev-12-6=12.6.0.22-1 \
+    libnccl-dev=2.23.4-1+cuda12.6 \
+    cuda-nsight-compute-12-6=${NV_CUDA_LIB_VERSION}
 
 # install CUDA 12.6
 wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb

@@ -16,6 +16,7 @@ jobs:
       files: ${{ steps.changed_files.outputs.files }}
       platform: ${{ steps.parse_path.outputs.platform }}
       runner_label: ${{ steps.set_runner_label.outputs.runner_label }}
+      noscan: ${{ steps.set_proceed_flag.outputs.noscan }}
     
     steps:
       - name: Set default runner label
@@ -131,12 +132,21 @@ jobs:
           
           # check Dockerfile includes org.opencontainers.image.devmode=true
           if grep -q -E '^[^#]*LABEL\s+org\.opencontainers\.image\.devmode\s*=\s*true' "$file"; then
-            echo "Dockerfile contains org.opencontainers.image.devmode=auto. Setting devmode to true."
+            echo "Dockerfile contains org.opencontainers.image.devmode=true. Setting devmode to true."
             echo "devmode=true" >> $GITHUB_OUTPUT
           else
             echo "Dockerfile does not contain org.opencontainers.image.devmode=true. Setting devmode to false."
             echo "devmode=false" >> $GITHUB_OUTPUT
-          fi    
+          fi
+          
+           # check Dockerfile includes org.opencontainers.image.noscan=true
+          if grep -q -E '^[^#]*LABEL\s+org\.opencontainers\.image\.noscan\s*=\s*true' "$file"; then
+            echo "Dockerfile contains org.opencontainers.image.noscan=true. Setting trivy to noscan."
+            echo "noscan=true" >> $GITHUB_OUTPUT
+          else
+            echo "Dockerfile does not contain org.opencontainers.image.noscan=true. Setting trivy to default."
+            echo "noscan=false" >> $GITHUB_OUTPUT
+          fi 
 
       - name: Parse file path
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
@@ -344,7 +354,7 @@ jobs:
   SCAN-AND-REPORT-job:
     needs: [BUILD-AND-PUSH-job, PREPARE-job]
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
-    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true' && needs.PREPARE-job.outputs.noscan != 'true'
     steps:
       - name: Print hostname
         run: |

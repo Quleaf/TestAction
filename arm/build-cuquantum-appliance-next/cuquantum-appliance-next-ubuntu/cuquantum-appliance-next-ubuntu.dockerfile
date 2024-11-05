@@ -2,12 +2,13 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
-LABEL org.opencontainers.image.devmode=false
+LABEL org.opencontainers.image.devmode=true
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.version="04-11-2024"
 LABEL org.opencontainers.image.minversion="0.1.3"
+LABEL org.opencontainers.image.noscan=true
 
 ARG PY_VERSION="3.12"
 ARG CUDA_VERSION="12.6.0"
@@ -31,7 +32,7 @@ ENV NCCL_VERSION="2.19.3-1"
 ENV TERM="xterm-256color"
 ENV PATH="/usr/local/cuda/bin:/usr/local/mpi/bin:/usr/local/ucx/bin:/usr/local/munge/bin:/usr/local/pmix/bin:/usr/local/slurm/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ENV CPATH="/usr/include:/usr/local/mpi/include:/usr/local/ucx/include:/usr/local/gdrcopy/include:/usr/local/munge/include:/usr/local/pmix/include:/usr/local/slurm/include"
-ENV LD_LIBRARY_PATH="/usr/local/mpi/lib:/usr/local/ucx/lib:/usr/local/gdrcopy/lib:/usr/local/munge/lib:/usr/local/pmix/lib:/usr/local/slurm/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
+ENV LD_LIBRARY_PATH="/usr/local/mpi/lib:/usr/local/ucx/lib:/usr/local/gdrcopy/lib:/usr/local/munge/lib:/usr/local/pmix/lib:/usr/local/slurm/lib:/usr/local/nvidia/lib:/opt/cuquantum/lib:/usr/local/nvidia/lib64"
 ENV LIBRARY_PATH="/usr/lib:/usr/local/cuda/lib64/stubs"
 ENV CUQUANTUM_ROOT="/opt/cuquantum"
 ENV CUTENSORNET_COMM_LIB="/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_mpi.so"
