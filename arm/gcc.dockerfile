@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
-LABEL org.opencontainers.image.devmode=true
+LABEL org.opencontainers.image.devmode=false
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
@@ -82,7 +82,27 @@ RUN apt-get update -qq && \
         gcc \
         g++ \
         gfortran && \
+        apt-get install -y --no-install-recommends \
+        libhwloc-dev \
+        lsb-release \
+        pciutils \
+        ibverbs-providers \
+        libibverbs1 libibverbs-dev ibverbs-utils infiniband-diags perftest \
+        rdma-core \
+        libgfortran5 \
+        debhelper \
+        graphviz \
+        tk \
+        libusb-1.0-0 \
+        kmod \
+        swig \
+        pkg-config \
+        tcl \
+        bison \
+        libfuse2 &&\
     rm -rf /var/lib/apt/lists/*
+
+
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION} 1 && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1 && \
