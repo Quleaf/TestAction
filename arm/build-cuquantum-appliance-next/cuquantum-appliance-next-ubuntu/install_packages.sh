@@ -60,7 +60,7 @@ update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION
 update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1
 curl https://bootstrap.pypa.io/get-pip.py | python -
 
-NVIDIA CUDA and associated packages
+#NVIDIA CUDA and associated packages
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb
 dpkg -i cuda-keyring_1.1-1_all.deb
 apt-get update
