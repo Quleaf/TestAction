@@ -22,8 +22,6 @@ sudo apt-get install -y --no-install-recommends \
     bison \
     libfuse2
 
-
-
 # set CUDA 
 export CUDA_HOME=/usr/local/cuda-12.6
 export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:$LD_LIBRARY_PATH
