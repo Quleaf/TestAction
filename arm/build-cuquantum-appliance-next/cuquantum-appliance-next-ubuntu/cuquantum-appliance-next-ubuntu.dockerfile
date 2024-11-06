@@ -119,7 +119,8 @@ RUN python -m venv --system-site-packages /opt/cuquantum-source/cuquantum-env &&
      'cupy-cuda12x' 'nbformat' 'pytest' 
 
 # create mpi.cfg 
-RUN echo "[openmpi]" > /opt/mpicfg/mpi.cfg && \
+RUN mkdir -p /opt/mpicfg &&\
+    echo "[openmpi]" > /opt/mpicfg/mpi.cfg && \
     echo "mpi_dir = /opt/hpcx/ompi" >> /opt/mpicfg/mpi.cfg && \
     echo "mpicc   = %(mpi_dir)s/bin/mpicc" >> /opt/mpicfg/mpi.cfg && \
     echo "mpicxx  = %(mpi_dir)s/bin/mpicxx" >> /opt/mpicfg/mpi.cfg
