@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.devmode=true
 LABEL org.opencontainers.image.ref.name="ubuntu"
 LABEL org.opencontainers.image.version="22.04"
 LABEL org.opencontainers.image.author="Shusen Liu"
-LABEL org.opencontainers.image.version="06-11-2024"
+LABEL org.opencontainers.image.version="07-11-2024"
 LABEL org.opencontainers.image.minversion="0.1.5"
 LABEL org.opencontainers.image.noscan=true
 
@@ -116,8 +116,18 @@ RUN python -m venv --system-site-packages /opt/cuquantum-source/cuquantum-env &&
     pip install --upgrade pip && \
     pip install 'cryptography~=43.0' 'setuptools' 'urllib3==1.26.5' 'packaging'\
      'httpx' 'wheel' 'mpmath==1.3.0' 'pyjwt==2.4.0' 'Cython>=0.29.22,<3' 'numpy'\
-     'cupy-cuda12x' 'nbformat' 'pytest' \
-     'mpi4py' &&\
+     'cupy-cuda12x' 'nbformat' 'pytest' 
+
+# create mpi.cfg 
+RUN echo "[openmpi]" > /opt/mpicfg/mpi.cfg && \
+    echo "mpi_dir = /opt/hpcx/ompi" >> /opt/mpicfg/mpi.cfg && \
+    echo "mpicc   = %(mpi_dir)s/bin/mpicc" >> /opt/mpicfg/mpi.cfg && \
+    echo "mpicxx  = %(mpi_dir)s/bin/mpicxx" >> /opt/mpicfg/mpi.cfg
+
+ENV MPI4PY_BUILD_MPICFG=/opt/mpicfg/mpi.cfg
+
+RUN . /opt/cuquantum-source/cuquantum-env/bin/activate &&\
+    pip install 'mpi4py' &&\
     pip install /opt/qiskit/qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl &&\
     cd /opt/cuquantum-source/python &&\
     pip install -v --no-deps --no-build-isolation . &&\
@@ -133,8 +143,6 @@ RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-source/cuquantum-
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo '. /opt/cuquantum-source/cuquantum-env/bin/activate' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export CUDA_PATH=/usr/local/cuda' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export BASE_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export BASE_LD_PRELOAD=${LD_PRELOAD}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export LD_LIBRARY_PATH=/opt/cuquantum-source/cuquantum-env/lib:${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1:${LD_PRELOAD}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo 'export CUQUANTUM_ROOT=/opt/cuquantum'>> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
