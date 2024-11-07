@@ -456,9 +456,9 @@ jobs:
           docker push ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
 
-      - name: Push Docker image to Quay.IO after approval
-        run: |          
-          docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+#      - name: Push Docker image to Quay.IO after approval
+#        run: |          
+#          docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
       - name: Remove Docker images
         run: |
