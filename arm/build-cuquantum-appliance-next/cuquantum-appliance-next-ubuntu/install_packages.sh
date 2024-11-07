@@ -44,7 +44,7 @@ apt-get install -y --no-install-recommends \
     ninja-build \
     libblas-dev libopenblas-dev \
     libtbb-dev\
-    python${PY_VERSION}-dev python${PY_VERSION}-distutils python${PY_VERSION}-full\
+    python3.12-dev python3.12-distutils python3.12-full\
     gcc g++ gfortran \
     libhwloc-dev \
     lsb-release \
