@@ -11,7 +11,6 @@ apt-get update -qq
 # Install development tools and libraries
 # One part is basic tools and libraries, 
 # the other part is for building and running the HPC-X
-# The last part is for cutensor
 apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
@@ -63,8 +62,8 @@ apt-get install -y --no-install-recommends \
     pkg-config \
     tcl \
     bison \
-    libfuse2\
-    libcutensor2 libcutensor-dev libcutensor-doc
+    libfuse2
+
 
 # add-apt-repository ppa:ubuntu-toolchain-r/test
 # apt-get update -qq
@@ -81,11 +80,11 @@ update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION
 update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1
 curl https://bootstrap.pypa.io/get-pip.py | python -
 
-# install CUDA 12.6
+# install CUDA 12.6 and cutensor
 wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb
-sudo dpkg -i cuda-keyring_1.1-1_all.deb
-sudo apt-get update
-sudo apt-get install -y cuda-toolkit-12-6=12.6.1-1
+dpkg -i cuda-keyring_1.1-1_all.deb
+apt-get update
+apt-get install -y cuda-toolkit-12-6=12.6.1-1 libcutensor2 libcutensor-dev libcutensor-doc
 rm cuda-keyring_1.1-1_all.deb
 
 python -m pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 pip-tools
@@ -101,13 +100,13 @@ export HPCX_PACKAGE=hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64.tbz
 export HPCX_DOWNLOAD_URL=https://content.mellanox.com/hpc/hpc-x/${HPCX_VERSION}/${HPCX_PACKAGE}
 
 # download and set HPC-X
-sudo mkdir -p /opt
+mkdir -p /opt
 cd /opt
-sudo wget -q ${HPCX_DOWNLOAD_URL}
-sudo tar -xf $(basename ${HPCX_DOWNLOAD_URL})
-sudo rm $(basename ${HPCX_DOWNLOAD_URL})
-sudo mv hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64 hpcx
-sudo chmod o+w hpcx
+wget -q ${HPCX_DOWNLOAD_URL}
+tar -xf $(basename ${HPCX_DOWNLOAD_URL})
+rm $(basename ${HPCX_DOWNLOAD_URL})
+mv hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64 hpcx
+chmod o+w hpcx
 
 # Clean up
 rm -rf /root/.cache/pip
