@@ -95,7 +95,7 @@ RUN wget -q https://developer.download.nvidia.com/compute/cuquantum/redist/cuqua
 
 ENV LD_LIBRARY_PATH=/opt/cuquantum/lib:${LD_LIBRARY_PATH}
 ENV CUQUANTUM_ROOT="/opt/cuquantum"
-ENV CUTENSORNET_COMM_LIB="/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_mpi.so"
+ENV CUTENSORNET_COMM_LIB="/opt/cuquantum/distributed_interfaces/libcutensornet_distributed_interface_mpi.so"
 
 # download cuQuantum source code
 RUN wget -q https://github.com/NVIDIA/cuQuantum/archive/refs/tags/v24.08.0.tar.gz &&\
@@ -123,10 +123,10 @@ RUN mkdir -p /opt/mpicfg &&\
 ENV MPI4PY_BUILD_MPICFG=/opt/mpicfg/mpi.cfg
 
 RUN . /opt/cuquantum-source/cuquantum-env/bin/activate &&\
-    pip install 'mpi4py' &&\
-    pip install /opt/qiskit/qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl &&\
+    pip install 'mpi4py' &&\    
     cd /opt/cuquantum-source/python &&\
     pip install -v --no-deps --no-build-isolation . &&\
+    pip install /opt/qiskit/qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl &&\
     rm -rf /root/.cache/pip
 
 # Create symbolic links for cutensor and cuquantum libraries, from /opt/cuquantum to /opt/cuquantum-source/cuquantum-env
