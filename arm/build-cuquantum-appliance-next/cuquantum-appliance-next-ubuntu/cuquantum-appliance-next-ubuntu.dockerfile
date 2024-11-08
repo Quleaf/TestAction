@@ -15,7 +15,7 @@ ARG CUDA_VERSION="12.6.0"
 
 # Set default environment variables
 ENV DEBIAN_FRONTEND="noninteractive"
-ENV PATH="/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ENV CPATH="/usr/include"
 ENV LD_LIBRARY_PATH="/usr/lib64:/usr/lib"
 ENV LIBRARY_PATH="/usr/lib:/usr/local/cuda/lib64/stubs"
@@ -44,7 +44,8 @@ ENV HPCX_DIR=${HPCX_HOME} \
     MPI_HOME=${HPCX_HOME}/ompi \
     OSHMEM_HOME=${HPCX_HOME}/ompi \
     SHMEM_HOME=${HPCX_HOME}/ompi \
-    MPI_PATH=${HPCX_HOME}/ompi
+    MPI_PATH=${HPCX_HOME}/ompi \
+    MPI_ROOT=${HPCX_HOME}/ompi
 
 # Update PATH
 ENV CUDA_HOME=/usr/local/cuda
@@ -138,17 +139,17 @@ ENV LD_LIBRARY_PATH=/opt/cuquantum-source/cuquantum-env/lib:${LD_LIBRARY_PATH}
     
 # Prepare activation script
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo '. /opt/cuquantum-source/cuquantum-env/bin/activate' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export CUDA_PATH=/usr/local/cuda' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export CUDA_HOME=/usr/local/cuda' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export CUQUANTUM_ROOT=/opt/cuquantum'>> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export CUTENSOR_ROOT=/opt/cuquantum'>> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export MPI_PATH=${MPI_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo ". /opt/cuquantum-source/cuquantum-env/bin/activate" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export CUDA_PATH=/usr/local/cuda" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export CUDA_HOME=/usr/local/cuda" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export CUQUANTUM_ROOT=/opt/cuquantum">> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export CUTENSOR_ROOT=/opt/cuquantum">> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export MPI_PATH=${MPI_PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
 #   for cutensornet samples require MPI_ROOT   
-    echo 'export MPI_ROOT=${MPI_PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
-    echo 'export PATH=${PATH}' >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export MPI_ROOT=${MPI_PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
+    echo "export PATH=${PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     chmod +x /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh
 
 
