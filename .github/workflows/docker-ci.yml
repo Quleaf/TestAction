@@ -77,9 +77,6 @@ jobs:
           else
             echo "All required variables and secrets are set."
           fi
-      - name: Install Git LFS
-        run: |
-          git lfs install
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -266,10 +263,6 @@ jobs:
         run: |
           echo "Hostname: $(hostname)"
       
-      - name: Install Git LFS
-        run: |
-          git lfs install
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -500,10 +493,6 @@ jobs:
     #environment:
      # name: manual_approval  
     steps:
-      - name: Install Git LFS
-        run: |
-          git lfs install
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
