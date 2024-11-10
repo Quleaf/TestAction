@@ -500,7 +500,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
-          lfs: true
+
       - name: Setup rclone
         uses: ./.github/actions/setup-rclone
         with:
