@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.name="cudaquantum"
 LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.version="10-11-2024"
-LABEL org.opencontainers.image.minversion="0.0.4"
+LABEL org.opencontainers.image.minversion="0.0.5"
 LABEL org.opencontainers.image.noscan=true
 
 ARG PY_VERSION="3.12"
