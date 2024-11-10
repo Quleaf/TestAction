@@ -77,7 +77,9 @@ jobs:
           else
             echo "All required variables and secrets are set."
           fi
-
+      - name: Install Git LFS
+        run: |
+          git lfs install
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -253,6 +255,8 @@ jobs:
           echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
           echo "Runner label: ${{ steps.determine_runner.outputs.runner_label }}"
       
+
+      
   BUILD-AND-PUSH-job:
     needs: PREPARE-job
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
@@ -261,6 +265,11 @@ jobs:
       - name: Print hostname
         run: |
           echo "Hostname: $(hostname)"
+      
+      - name: Install Git LFS
+        run: |
+          git lfs install
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -491,6 +500,10 @@ jobs:
     #environment:
      # name: manual_approval  
     steps:
+      - name: Install Git LFS
+        run: |
+          git lfs install
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
