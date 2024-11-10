@@ -235,9 +235,11 @@ RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-source/cuquantum-
 
 ENV LD_LIBRARY_PATH=/opt/cuquantum-source/cuquantum-env/lib:${LD_LIBRARY_PATH}
 
-# RUN . /opt/cuquantum-source/cuquantum-env/bin/activate &&\
-#     pip install cuda-quantum &&\
-#     . /opt/cuquantum-source/cuquantum-env/lib/python3.12/site-packages/distributed_interfaces/activate_custom_mpi.sh
+COPY ./cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl /opt
+
+RUN . /opt/cuquantum-source/cuquantum-env/bin/activate &&\
+     pip install /opt/cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl &&\
+     . /opt/cuquantum-source/cuquantum-env/lib/python3.12/site-packages/distributed_interfaces/activate_custom_mpi.sh
 
 RUN wget -q https://github.com/NVIDIA/cuda-quantum/releases/download/0.8.0/install_cuda_quantum.aarch64 -O /tmp/install_cuda_quantum.aarch64 && \
     chmod +x /tmp/install_cuda_quantum.aarch64 && \
