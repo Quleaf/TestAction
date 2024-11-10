@@ -269,6 +269,9 @@ jobs:
           fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
           lfs: true
 
+      - name: Checkout LFS objects
+        run: git lfs checkout
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:

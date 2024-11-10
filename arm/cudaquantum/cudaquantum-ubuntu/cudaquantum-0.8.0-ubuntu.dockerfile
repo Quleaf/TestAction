@@ -181,6 +181,7 @@ RUN /bin/bash -c ' \
 
 RUN mkdir -p /opt/qiskit
 COPY qiskit_aer-0.15.0-cp312-cp312-linux_aarch64.whl /opt/qiskit
+COPY cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl /opt
 
 # Install cuQuantum binary without examples
 RUN wget -q https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz \
@@ -235,7 +236,6 @@ RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-source/cuquantum-
 
 ENV LD_LIBRARY_PATH=/opt/cuquantum-source/cuquantum-env/lib:${LD_LIBRARY_PATH}
 
-COPY ./cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl /opt
 
 RUN . /opt/cuquantum-source/cuquantum-env/bin/activate &&\
      pip install /opt/cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl &&\
