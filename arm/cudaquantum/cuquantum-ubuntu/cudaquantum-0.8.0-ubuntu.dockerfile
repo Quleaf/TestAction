@@ -3,8 +3,8 @@ FROM ubuntu:22.04
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
-LABEL org.opencontainers.image.ref.name="ubuntu"
-LABEL org.opencontainers.image.version="22.04"
+LABEL org.opencontainers.image.name="cudaquantum"
+LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.version="09-11-2024"
 LABEL org.opencontainers.image.minversion="0.1.8"
@@ -234,6 +234,15 @@ RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-source/cuquantum-
     ln -s /opt/cuquantum/lib/libcutensornet.so.2 /opt/cuquantum-source/cuquantum-env/lib/libcutensornet.so 
 
 ENV LD_LIBRARY_PATH=/opt/cuquantum-source/cuquantum-env/lib:${LD_LIBRARY_PATH}
+
+RUN . /opt/cuquantum-source/cuquantum-env/bin/activate &&\
+    pip install cuda-quantum &&\
+    . /opt/cuquantum-source/cuquantum-env/lib/python3.12/site-packages/distributed_interfaces/activate_custom_mpi.sh
+
+RUN wget -q https://github.com/NVIDIA/cuda-quantum/releases/download/0.8.0/install_cuda_quantum.aarch64 -O /tmp/install_cuda_quantum.aarch64 && \
+    chmod +x /tmp/install_cuda_quantum.aarch64 && \
+    bash /tmp/install_cuda_quantum.aarch64 --accept && \
+    rm /tmp/install_cuda_quantum.aarch64
     
 # Prepare activation script
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
