@@ -83,6 +83,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2  # Ensure enough history is available
+          lfs: true 
 
       - name: Get changed files
         id: changed_files
@@ -264,6 +265,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
+          lfs: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -493,6 +495,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
+          lfs: true
       - name: Setup rclone
         uses: ./.github/actions/setup-rclone
         with:
