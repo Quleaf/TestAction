@@ -1,9 +1,12 @@
 FROM ubuntu:22.04
 
+#CICD metadata
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
 LABEL org.opencontainers.image.noscan=true
+
+#Image metadata
 LABEL org.opencontainers.image.name="cudaquantum"
 LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.author="Shusen Liu"
@@ -247,7 +250,6 @@ RUN ln -s /opt/cuquantum/lib/libcustatevec.so.1 /opt/cuquantum-source/cuquantum-
 
 ENV LD_LIBRARY_PATH=/opt/cuquantum-source/cuquantum-env/lib:${LD_LIBRARY_PATH}
 
-
 RUN wget -q https://r2.qcompiler.com/cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl -O /tmp/cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl &&\
     . /opt/cuquantum-source/cuquantum-env/bin/activate &&\
     pip install /tmp/cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl &&\
@@ -260,13 +262,11 @@ RUN wget -q https://github.com/NVIDIA/cuda-quantum/releases/download/0.8.0/insta
     ln -s /usr/local/cuda/targets/sbsa-linux/lib/libcublas.so /usr/local/cuda/targets/sbsa-linux/lib/libcublas.so.11 && \   
     ln -s /usr/local/cuda/targets/sbsa-linux/lib/libcublasLt.so /usr/local/cuda/targets/sbsa-linux/lib/libcublasLt.so.11 &&\
     rm /tmp/install_cuda_quantum.aarch64
-
     
 ENV CUDAQ_INSTALL_PATH="/opt/nvidia/cudaq"
 ENV LD_LIBRARY_PATH=${CUDAQ_INSTALL_PATH}/lib:${LD_LIBRARY_PATH}
 ENV PATH=${CUDAQ_INSTALL_PATH}/bin:${PATH}
 ENV CPLUS_INCLUDE_PATH=${CUDAQ_INSTALL_PATH}/include:${CPLUS_INCLUDE_PATH}
-
 
 # Prepare activation script
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
@@ -282,8 +282,6 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.
     echo "export MPI_ROOT=${MPI_PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo "export PATH=${PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     chmod +x /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh
-
-
 
 # Copy the Dockerfile and environment files for Ella to the container
 # For reference, we copy all the dockerfiles in this topic to the container
