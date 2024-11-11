@@ -123,6 +123,6 @@ RUN mkdir -p /container-scratch/
 
 # and copy the recipe into the docker recipes directory
 RUN mkdir -p /opt/docker-recipes/
-COPY buildqiskit-cuda.dockerfile /opt/docker-recipes/
+COPY *.dockerfile /opt/docker-recipes/
 # final
 CMD ["/bin/bash"]   
