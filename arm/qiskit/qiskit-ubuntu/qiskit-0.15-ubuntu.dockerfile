@@ -63,14 +63,21 @@ RUN apt-get update -qq \
     && pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 pip-tools \
     && update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION} 1 \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1 \
+    && add-apt-repository ppa:ubuntu-toolchain-r/test  \
+    && apt-get update -qq  \
+    && apt-get install -y --no-install-recommends gcc-13 g++-13 gfortran-13  \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100  \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 \
+    && update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-13 100  \
+    && add-apt-repository --remove ppa:ubuntu-toolchain-r/test \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm cuda-keyring_1.1-1_all.deb
 
 WORKDIR /opt/
 
-RUN wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz -O cuquantum.tar.xz \
-  && wget https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-sbsa/libcutensor-linux-sbsa-2.0.2.5-archive.tar.xz -O libcutensor.tar.xz \
+RUN wget -q https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-24.08.0.5_cuda12-archive.tar.xz -O cuquantum.tar.xz \
+  && wget -q https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-sbsa/libcutensor-linux-sbsa-2.0.2.5-archive.tar.xz -O libcutensor.tar.xz \
   && tar -xf cuquantum.tar.xz \
   && tar -xf libcutensor.tar.xz \
   && ls  \
