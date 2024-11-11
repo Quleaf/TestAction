@@ -1,34 +1,28 @@
 # This recipe supports Qiskit-aer-GPU built with a minimal image based on CUDA 12.5, compatible with Grace Hopper, and supporting aarch64 architectures.
 
-# py version is allowed to be passed in as a build argument
-ARG PY_VERSION="3.12" 
-# cuda version is allowed to be passed in as a build argument 12.5.0/12.6.0. For Grace Hopper, we recommand only these two versions.
-ARG CUDA_VERSION="12.5.0"
-# date tag is allowed to be passed in as a build argument
-ARG DATE_TAG=2024-09
-
-#----------------------------------------------------------------
-#------------------------start stage------------------------
-#----------------------------------------------------------------
 FROM ubuntu:22.04
-ARG PY_VERSION 
-ARG DATE_TAG
-ARG CUDA_VERSION
 
-
-# define some metadata 
-LABEL org.opencontainers.image.created="2024-10"
-LABEL org.opencontainers.image.authors="Shusen Liu <shusen.liu@pawsey.org.au>"
-LABEL org.opencontainers.image.documentation="https://github.com/PawseySC/pawsey-containers/"
-LABEL org.opencontainers.image.source="https://github.com/PawseySC/pawsey-containers/applications/qiskit/buildqiskit-cuda.dockerfile"
-LABEL org.opencontainers.image.vendor="Pawsey Supercomputing Research Centre"
-LABEL org.opencontainers.image.licenses="GNU GPL3.0"
-LABEL org.opencontainers.image.title="Qiskit - Grace Hopper with CUDA ${CUDA_VERSION}"
-LABEL org.opencontainers.image.description="A Qiskit-aer-GPU built with a minimal image based on CUDA 12.5, compatible with Grace Hopper, and supporting aarch64 architectures."
+#CICD metadata
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
+LABEL org.opencontainers.image.noscan=true
 
+#Image metadata
+LABEL org.opencontainers.image.name="qiskit"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.version="12-11-2024"
+LABEL org.opencontainers.image.minversion="0.0.1"
+LABEL org.opencontainers.image.authors="Shusen Liu <shusen.liu@pawsey.org.au>"
+LABEL org.opencontainers.image.vendor="Pawsey Supercomputing Research Centre"
+LABEL org.opencontainers.image.licenses="GNU GPL3.0"
+LABEL org.opencontainers.image.title="Ella cudaquantum with cuQuantum and hpcx"
+LABEL org.opencontainers.image.description="We provide a container image for the Ella project, \
+supporting Qiskit-aer-GPU built with a minimal image based on CUDA 12.6. \
+1. qiskit v0.15.0 with cuquantum support"
+
+ARG CUDA_VERSION=12.6.0
+ARG PY_VERSION=3.12
 # run apt-get install on a few packages
 ENV DEBIAN_FRONTEND="noninteractive"
 
@@ -41,7 +35,6 @@ RUN apt-get update -qq \
         ca-certificates \
         wget \
         git \
-        python3 python3-dev python3-pip python3-setuptools python3-venv \
         sudo \
         curl \
         libtool \
@@ -90,7 +83,7 @@ RUN wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantu
 RUN mkdir -p /opt/qiskit-aer-build \
   && git clone https://github.com/Qiskit/qiskit-aer /opt/qiskit-aer-build \
   && cd /opt/qiskit-aer-build \
-  ## Only 0.15 For Grace Hopper
+  ## Only 0.15 and above For Grace Hopper
   && git checkout 0.15  
 
 RUN echo "Building Qiskit ... " \
@@ -109,7 +102,10 @@ ENV CC=/usr/bin/gcc \
     CUDACXX=/usr/local/cuda/bin/nvcc
 
 WORKDIR /opt/qiskit-aer-build
-ENV LD_LIBRARY_PATH=/opt/cuquantum/lib:/usr/local/lib/python3.10/dist-packages/nvidia/cublas/lib:/opt/libcutensor/lib/12:/usr/local/lib/python3.10/dist-packages/nvidia/cusolver/lib:/usr/local/lib/python3.10/dist-packages/nvidia/cusparse/lib:${LD_LIBRARY_PATH:-""}
+#ENV LD_LIBRARY_PATH=/opt/cuquantum/lib:/usr/local/lib/python3.10/dist-packages/nvidia/cublas/lib:/opt/libcutensor/lib/12:/usr/local/lib/python3.10/dist-packages/nvidia/cusolver/lib:/usr/local/lib/python3.10/dist-packages/nvidia/cusparse/lib:${LD_LIBRARY_PATH:-""}
+
+ENV LD_LIBRARY_PATH=/opt/cuquantum/lib:/opt/libcutensor/lib/12:${LD_LIBRARY_PATH}
+
 
 RUN  python ./setup.py bdist_wheel -vvv --  \
     -DAER_THRUST_BACKEND=CUDA \
@@ -128,6 +124,5 @@ RUN mkdir -p /container-scratch/
 # and copy the recipe into the docker recipes directory
 RUN mkdir -p /opt/docker-recipes/
 COPY buildqiskit-cuda.dockerfile /opt/docker-recipes/
-
 # final
 CMD ["/bin/bash"]   
