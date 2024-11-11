@@ -47,6 +47,7 @@ RUN apt-get update -qq \
         python${PY_VERSION}-dev \
         python${PY_VERSION}-distutils \
         python${PY_VERSION}-full \
+        python3-pip \
     && wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb \
     && dpkg -i cuda-keyring_1.1-1_all.deb \
     && apt-get update \
