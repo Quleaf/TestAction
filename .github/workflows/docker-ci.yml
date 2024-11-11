@@ -398,13 +398,12 @@ jobs:
     env:
      BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/${{ needs.PREPARE-job.outputs.date }}
-    #environment:
-    #  name: manual_approval  
     steps:
       - name: Print hostname and set approved label for deployment
         id: set_approved_label
         run: |
           echo "Hostname: $(hostname)"
+
       - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory in case of running before scan
         run: |
           if [ -f "$HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar" ]; then
@@ -437,13 +436,6 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
-      - name: Login to quay Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: quay.io
-          username: ${{ vars.QUAYIO_USERNAME }}
-          password: ${{ secrets.QUAYIO_TOKEN }}
-      
       - name: Load Docker image from image.tar
         run: |
             docker load -i ${GITHUB_WORKSPACE}/image.tar
@@ -451,19 +443,10 @@ jobs:
       - name: Tag Docker image for Dockerhub and Quay.IO
         run: |
           docker tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-          docker tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-          docker tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
 
       - name: Push Docker image to Dockerhub after approval
         run: |          
           docker push ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
-      - name: Push Docker image to Quay.IO after approval
-        if: needs.PREPARE-job.outputs.devmode != 'true'
-        run: |          
-          docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-          docker push quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
 
       - name: Remove Docker images
         run: |
@@ -472,12 +455,10 @@ jobs:
         
             # Remove tagged images
           docker rmi ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
-          docker rmi quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true 
-          # docker rmi quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true       
 
 
   CLEANUP-job:
-    needs: [APPROVE-AND-PUSH-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
+    needs: [APPROVE-PUSH-PUB-job,APPROVE-AND-PUSH-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
     if: always()
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     steps:
@@ -522,7 +503,59 @@ jobs:
             source ~/.bashrc
           
             singularity build --force $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}.sif docker-archive://$MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/image.tar
-           
+  
+  APPROVE-PUSH-PUB-job:
+    needs: [BUILD-AND-PUSH-job,DEPLOY-job, PREPARE-job]
+    runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    environment:
+      name: manual_approval  
+    steps:
+      - name: Print hostname and set approved label for deployment
+        id: set_approved_label
+        run: |
+          echo "Hostname: $(hostname)"
+      - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory in case of running before scan
+        run: |
+          if [ -f "$HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar" ]; then
+            echo "File already exists, skipping copy."
+          else
+            cp $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
+            echo "Copied image.tar from $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
+          fi
+
+      - name: Login to quay Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ vars.QUAYIO_USERNAME }}
+          password: ${{ secrets.QUAYIO_TOKEN }}
+      
+      - name: Load Docker image from image.tar
+        run: |
+            docker load -i ${GITHUB_WORKSPACE}/image.tar
+
+      - name: Tag Docker image for Dockerhub and Quay.IO
+        run: |
+          docker tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+          docker tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+
+      - name: Push Docker image to Quay.IO after approval
+        if: needs.PREPARE-job.outputs.devmode != 'true'
+        run: |          
+          docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+          docker push quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
+
+
+      - name: Remove Docker images
+        run: |
+          # Remove the main image
+          docker rmi ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
+        
+            # Remove tagged images
+          docker rmi quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true 
+          docker rmi quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true       
+         
 
 
 
