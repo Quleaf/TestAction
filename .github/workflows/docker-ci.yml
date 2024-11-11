@@ -473,7 +473,7 @@ jobs:
             # Remove tagged images
           docker rmi ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
           docker rmi quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true 
-          docker rmi quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true       
+          # docker rmi quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true       
 
 
   CLEANUP-job:
