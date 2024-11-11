@@ -48,6 +48,13 @@ RUN apt-get update -qq \
         python${PY_VERSION}-distutils \
         python${PY_VERSION}-full \
         python3-pip \
+    && add-apt-repository ppa:ubuntu-toolchain-r/test  \
+    && apt-get update -qq  \
+    && apt-get install -y --no-install-recommends gcc-13 g++-13 gfortran-13  \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100  \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 \
+    && update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-13 100  \
+    && add-apt-repository --remove ppa:ubuntu-toolchain-r/test \
     && wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/sbsa/cuda-keyring_1.1-1_all.deb \
     && dpkg -i cuda-keyring_1.1-1_all.deb \
     && apt-get update \
@@ -62,14 +69,7 @@ RUN apt-get update -qq \
     && pip install --upgrade pip setuptools \
     && pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 pip-tools \
     && update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION} 1 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1 \
-    && add-apt-repository ppa:ubuntu-toolchain-r/test  \
-    && apt-get update -qq  \
-    && apt-get install -y --no-install-recommends gcc-13 g++-13 gfortran-13  \
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100  \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 \
-    && update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-13 100  \
-    && add-apt-repository --remove ppa:ubuntu-toolchain-r/test \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1 \    
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm cuda-keyring_1.1-1_all.deb
