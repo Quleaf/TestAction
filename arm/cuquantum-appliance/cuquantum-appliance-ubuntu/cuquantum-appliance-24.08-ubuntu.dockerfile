@@ -22,7 +22,8 @@ Pip venv: . /opt/cuquantum-source/cuquantum-env/bin/activate. \
 1. Run MPI with OpenMPI from HPC-X; \
 2. Run cuquantum examples in /opt/cuquantum-source; \
 3. Run Qiskit with cuQuantum and Aer from Qiskit; \
-4. cuQuantum Benchmarks v0.4.0"
+4. cuQuantum Benchmarks v0.4.0 \
+5. cuquantum-cpp, cuquantum-python"
 
 ARG PY_VERSION="3.12"
 ARG CUDA_VERSION="12.6.0"
@@ -274,4 +275,4 @@ COPY *.sh /opt/docker-recipes
 COPY *.whl /opt/docker-recipes
 
 # Set entrypoint to activate the environment on container start
-ENTRYPOINT ["/opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh"]
+ENTRYPOINT ["/opt/cuquantum-source/cuquantum-env/bin/activate"]
