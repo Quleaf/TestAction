@@ -3,12 +3,23 @@ FROM ubuntu:22.04
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
+LABEL org.opencontainers.image.noscan=true
 LABEL org.opencontainers.image.name="cudaquantum"
 LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.author="Shusen Liu"
 LABEL org.opencontainers.image.version="10-11-2024"
 LABEL org.opencontainers.image.minversion="0.0.6"
-LABEL org.opencontainers.image.noscan=true
+LABEL org.opencontainers.image.authors="Shusen Liu <shusen.liu@pawsey.org.au>"
+LABEL org.opencontainers.image.vendor="Pawsey Supercomputing Research Centre"
+LABEL org.opencontainers.image.licenses="GNU GPL3.0"
+LABEL org.opencontainers.image.title="Ella cudaquantum with cuQuantum and hpcx"
+LABEL org.opencontainers.image.description="We provide a container image for the Ella project, \
+which includes the cuQuantum library and the HPC-X MPI library. \
+Pip venv: . /opt/cuquantum-source/cuquantum-env/bin/activate. \
+1. Compile C++ with nvq++ from cudaquantum; \
+2. Run Python with nvqpy from cudaquantum; \
+3. Run MPI with OpenMPI from HPC-X; \
+4. Run Qiskit with cuQuantum and Aer from Qiskit;"
 
 ARG PY_VERSION="3.12"
 ARG CUDA_VERSION="12.6.0"
@@ -271,8 +282,6 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.
     echo "export MPI_ROOT=${MPI_PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo "export PATH=${PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     chmod +x /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh
-
-
 
 
 
