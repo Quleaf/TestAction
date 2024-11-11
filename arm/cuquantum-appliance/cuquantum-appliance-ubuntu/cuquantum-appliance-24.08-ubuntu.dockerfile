@@ -1,14 +1,28 @@
 FROM ubuntu:22.04
 
+#CICD metadata
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
-LABEL org.opencontainers.image.ref.name="ubuntu"
-LABEL org.opencontainers.image.version="22.04"
-LABEL org.opencontainers.image.author="Shusen Liu"
-LABEL org.opencontainers.image.version="09-11-2024"
-LABEL org.opencontainers.image.minversion="0.1.8"
 LABEL org.opencontainers.image.noscan=true
+
+#Image metadata
+LABEL org.opencontainers.image.name="cuquantum"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.author="Shusen Liu"
+LABEL org.opencontainers.image.version="11-11-2024"
+LABEL org.opencontainers.image.minversion="0.0.1"
+LABEL org.opencontainers.image.authors="Shusen Liu <shusen.liu@pawsey.org.au>"
+LABEL org.opencontainers.image.vendor="Pawsey Supercomputing Research Centre"
+LABEL org.opencontainers.image.licenses="GNU GPL3.0"
+LABEL org.opencontainers.image.title="Ella cuQuantum and hpcx"
+LABEL org.opencontainers.image.description="We provide a container image for the Ella project, \
+which includes the cuQuantum library and the HPC-X MPI library. \
+Pip venv: . /opt/cuquantum-source/cuquantum-env/bin/activate. \
+1. Run MPI with OpenMPI from HPC-X; \
+2. Run cuquantum examples in /opt/cuquantum-source; \
+3. Run Qiskit with cuQuantum and Aer from Qiskit; \
+4. cuQuantum Benchmarks v0.4.0"
 
 ARG PY_VERSION="3.12"
 ARG CUDA_VERSION="12.6.0"
