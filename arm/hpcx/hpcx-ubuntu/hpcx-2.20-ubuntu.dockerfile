@@ -1,21 +1,27 @@
 FROM ubuntu:22.04
-# This is a Dockerfile for building a container image for HPC-X on ARM architecture
-# As MPI is used, we need to bind some folders from the host to the container.
-# You do not need to source ./hpcx-mt-ompi and hpcx_load. All the valuable has been set in the env file.
-# mpirun -np 4 singularity exec --nv \
-#     -B /run/slurm:/run/slurm \
-#     -B /etc/slurm:/etc/slurm \
-#      -B /run/munge:/run/munge\
-#        -B /software:/software\
-#    --env-file hpcx-mt-ompi.env\
-#     hpcx-ubuntu-arm.sif bash -c  "xxx"
 
+#CICD metadata
 LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
+LABEL org.opencontainers.image.noscan=true
+
+#Image metadata
+LABEL org.opencontainers.image.name="hpcx"
+LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.author="Shusen Liu"
-LABEL org.opencontainers.image.version="04-11-2024"
+LABEL org.opencontainers.image.version="11-11-2024"
 LABEL org.opencontainers.image.minversion="0.0.1"
+LABEL org.opencontainers.image.authors="Shusen Liu <shusen.liu@pawsey.org.au>"
+LABEL org.opencontainers.image.vendor="Pawsey Supercomputing Research Centre"
+LABEL org.opencontainers.image.licenses="GNU GPL3.0"
+LABEL org.opencontainers.image.title="Ella MPI from hpcx"
+LABEL org.opencontainers.image.description="We provide a container image for the Ella project, \
+which includes the HPC-X MPI library. \
+Pip venv: . /opt/cuquantum-source/cuquantum-env/bin/activate. \
+1. Run MPI with OpenMPI from HPC-X;  "
+
+
 
 # Set noninteractive mode for apt
 ENV DEBIAN_FRONTEND=noninteractive
@@ -69,12 +75,10 @@ RUN mkdir -p /opt && \
     mv hpcx-v2.20-gcc-mlnx_ofed-ubuntu22.04-cuda12-aarch64 hpcx &&\
     chmod o+w hpcx
 
-#Set HPCX_HOME
-ENV HPCX_HOME=/opt/hpcx
-
-#Set environment variables (adjusted to match your host configuration)
+# HPCX related paths are set only for further complation of MPI
+# Execution of MPI applications relys on the env file of singularity
+ENV HPCX_HOME=/opt/hpcx 
 ENV HPCX_DIR=${HPCX_HOME} \
-    HPCX_HOME=${HPCX_HOME} \
     HPCX_UCX_DIR=${HPCX_HOME}/ucx \
     HPCX_UCC_DIR=${HPCX_HOME}/ucc \
     HPCX_SHARP_DIR=${HPCX_HOME}/sharp \
@@ -86,21 +90,24 @@ ENV HPCX_DIR=${HPCX_HOME} \
     HPCX_OSU_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks \
     HPCX_OSU_CUDA_DIR=${HPCX_HOME}/ompi/tests/osu-micro-benchmarks-cuda \
     OPAL_PREFIX=${HPCX_HOME}/ompi \
-    # Del it later
-    PMIX_INSTALL_PREFIX=${HPCX_HOME}/ompi \  
+    PMIX_INSTALL_PREFIX=${HPCX_HOME}/ompi \
     OMPI_HOME=${HPCX_HOME}/ompi \
     MPI_HOME=${HPCX_HOME}/ompi \
     OSHMEM_HOME=${HPCX_HOME}/ompi \
-    SHMEM_HOME=${HPCX_HOME}/ompi
+    SHMEM_HOME=${HPCX_HOME}/ompi \
+    MPI_PATH=${HPCX_HOME}/ompi \
+    MPI_ROOT=${HPCX_HOME}/ompi
 
 #Update path. All of these paths would be rewritten in the singularity env file
-ENV PATH=${HPCX_UCX_DIR}/bin:${HPCX_UCC_DIR}/bin:${HPCX_HCOLL_DIR}/bin:${HPCX_SHARP_DIR}/bin:${HPCX_MPI_TESTS_DIR}/imb:${HPCX_HOME}/clusterkit/bin:${HPCX_MPI_DIR}/bin:$PATH
-ENV LD_LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/lib:${HPCX_UCC_DIR}/lib/ucc:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:${HPCX_MPI_DIR}/lib:$LD_LIBRARY_PATH
-ENV LIBRARY_PATH=${HPCX_UCX_DIR}/lib:${HPCX_UCC_DIR}/lib:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:$LIBRARY_PATH
-ENV CPATH=${HPCX_HCOLL_DIR}/include:${HPCX_SHARP_DIR}/include:${HPCX_UCX_DIR}/include:${HPCX_UCC_DIR}/include:${HPCX_MPI_DIR}/include:$CPATH
+# Update PATH
+ENV CUDA_HOME=/usr/local/cuda
+ENV CUDA_PATH=/usr/local/cuda
+ENV PATH=${CUDA_HOME}/bin:${HPCX_UCX_DIR}/bin:${HPCX_UCC_DIR}/bin:${HPCX_HCOLL_DIR}/bin:${HPCX_SHARP_DIR}/bin:${HPCX_MPI_TESTS_DIR}/imb:${HPCX_HOME}/clusterkit/bin:${HPCX_MPI_DIR}/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:${CUDA_HOME}/lib64:/usr/lib64:${HPCX_UCX_DIR}/lib:${HPCX_UCX_DIR}/lib/ucx:${HPCX_UCC_DIR}/lib:${HPCX_UCC_DIR}/lib/ucc:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:${HPCX_MPI_DIR}/lib:$LD_LIBRARY_PATH
+ENV LIBRARY_PATH=$/usr/lib/aarch64-linux-gnu:${CUDA_HOME}/lib64:/usr/lib64:{HPCX_UCX_DIR}/lib:${HPCX_UCC_DIR}/lib:${HPCX_HCOLL_DIR}/lib:${HPCX_SHARP_DIR}/lib:${HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR}/lib:$LIBRARY_PATH
+ENV CPATH=/usr/local/cuda/include:${HPCX_HCOLL_DIR}/include:${HPCX_SHARP_DIR}/include:${HPCX_UCX_DIR}/include:${HPCX_UCC_DIR}/include:${HPCX_MPI_DIR}/include:$CPATH
 ENV PKG_CONFIG_PATH=${HPCX_HCOLL_DIR}/lib/pkgconfig:${HPCX_SHARP_DIR}/lib/pkgconfig:${HPCX_UCX_DIR}/lib/pkgconfig:${HPCX_MPI_DIR}/lib/pkgconfig:$PKG_CONFIG_PATH
-ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH
-
+ENV MANPATH=${HPCX_MPI_DIR}/share/man:$MANPATH 
 # Set working directory
 WORKDIR ${HPCX_HOME}
 
