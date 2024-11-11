@@ -242,11 +242,21 @@ RUN wget -q https://r2.qcompiler.com/cuda_quantum_cu12-0.0.0-cp312-cp312-manylin
     pip install /tmp/cuda_quantum_cu12-0.0.0-cp312-cp312-manylinux_2_28_aarch64.whl &&\
     . /opt/cuquantum-source/cuquantum-env/lib/python3.12/site-packages/distributed_interfaces/activate_custom_mpi.sh
 
+# Install cuda-quantum and temp patch 
 RUN wget -q https://github.com/NVIDIA/cuda-quantum/releases/download/0.8.0/install_cuda_quantum.aarch64 -O /tmp/install_cuda_quantum.aarch64 && \
     chmod +x /tmp/install_cuda_quantum.aarch64 && \
     bash /tmp/install_cuda_quantum.aarch64 --accept && \
+    ln -s /usr/local/cuda/targets/sbsa-linux/lib/libcublas.so /usr/local/cuda/targets/sbsa-linux/lib/libcublas.so.11 && \   
+    ln -s /usr/local/cuda/targets/sbsa-linux/lib/libcublasLt.so /usr/local/cuda/targets/sbsa-linux/lib/libcublasLt.so.11 &&\
     rm /tmp/install_cuda_quantum.aarch64
+
     
+ENV CUDAQ_INSTALL_PATH="/opt/nvidia/cudaq"
+ENV LD_LIBRARY_PATH=${CUDAQ_INSTALL_PATH}/lib:${LD_LIBRARY_PATH}
+ENV PATH=${CUDAQ_INSTALL_PATH}/bin:${PATH}
+ENV CPLUS_INCLUDE_PATH=${CUDAQ_INSTALL_PATH}/include:${CPLUS_INCLUDE_PATH}
+
+
 # Prepare activation script
 RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo ". /opt/cuquantum-source/cuquantum-env/bin/activate" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
@@ -261,6 +271,9 @@ RUN echo '#!/bin/bash' > /opt/cuquantum-source/cuquantum-env/activate_cuquantum.
     echo "export MPI_ROOT=${MPI_PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     echo "export PATH=${PATH}" >> /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh && \
     chmod +x /opt/cuquantum-source/cuquantum-env/activate_cuquantum.sh
+
+
+
 
 
 # Copy the Dockerfile and environment files for Ella to the container
