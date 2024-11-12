@@ -273,5 +273,8 @@ COPY *.env /opt/docker-recipes
 COPY *.sh /opt/docker-recipes
 COPY *.whl /opt/docker-recipes
 
+RUN mkdir -p /.singularity.d/env/ && \
+    cp -p /opt/cuquantum-source/cuquantum-env/bin/activate /.singularity.d/env/91-environment.sh
+
 # Set entrypoint to activate the environment on container start
 ENTRYPOINT ["/opt/cuquantum-source/cuquantum-env/bin/activate"]
