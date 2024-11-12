@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.noscan=true
 LABEL org.opencontainers.image.name="qiskit"
 LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.version="12-11-2024"
-LABEL org.opencontainers.image.minversion="0.0.3"
+LABEL org.opencontainers.image.minversion="0.0.4"
 LABEL org.opencontainers.image.authors="Shusen Liu <shusen.liu@pawsey.org.au>"
 LABEL org.opencontainers.image.vendor="Pawsey Supercomputing Research Centre"
 LABEL org.opencontainers.image.licenses="GNU GPL3.0"
@@ -110,7 +110,8 @@ ENV CC=/usr/bin/gcc \
 
 WORKDIR /opt/qiskit-aer-build
 
-ENV LD_LIBRARY_PATH=/opt/cuquantum/lib:/opt/libcutensor/lib/12:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/opt/cuquantum/lib:/opt/libcutensor/lib/12:${LD_LIBRARY_PATH:-""}
+
 
 RUN  python ./setup.py bdist_wheel -vvv --  \
     -DAER_THRUST_BACKEND=CUDA \
@@ -122,6 +123,9 @@ RUN  python ./setup.py bdist_wheel -vvv --  \
 RUN python -m pip install /opt/qiskit-aer-build/dist/qiskit_aer*.whl
 
 RUN rm -rf /opt/qiskit-aer-build/_skbuild
+#RUN python -m pip install -r /opt/qiskit-aer-build/requirements-dev.txt
+
+RUN mkdir -p /container-scratch/
 
 # and copy the recipe into the docker recipes directory
 RUN mkdir -p /opt/docker-recipes/
