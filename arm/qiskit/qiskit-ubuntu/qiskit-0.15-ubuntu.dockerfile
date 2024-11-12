@@ -69,7 +69,7 @@ RUN apt-get update -qq \
     && update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION} 1 \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1 \    
     && apt-get clean \
-    && rm -rf /root/.cache/pip && \
+    && rm -rf /root/.cache/pip  \
     && rm -rf /var/lib/apt/lists/* \
     && rm cuda-keyring_1.1-1_all.deb
 
