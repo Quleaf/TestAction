@@ -9,7 +9,7 @@ LABEL org.opencontainers.image.noscan=true
 #Image metadata
 LABEL org.opencontainers.image.name="cuquantum"
 LABEL org.opencontainers.image.version="1.0.0"
-LABEL org.opencontainers.image.version="12-11-2024"
+LABEL org.opencontainers.image.version="13-11-2024"
 LABEL org.opencontainers.image.minversion="0.0.2"
 LABEL org.opencontainers.image.authors="Shusen Liu <shusen.liu@pawsey.org.au>"
 LABEL org.opencontainers.image.vendor="Pawsey Supercomputing Research Centre"
