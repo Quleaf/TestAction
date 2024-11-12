@@ -1,5 +1,3 @@
-# This recipe supports Qiskit-aer-GPU built with a minimal image based on CUDA 12.5, compatible with Grace Hopper, and supporting aarch64 architectures.
-
 FROM ubuntu:22.04
 
 #CICD metadata
@@ -12,7 +10,7 @@ LABEL org.opencontainers.image.noscan=true
 LABEL org.opencontainers.image.name="qiskit"
 LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.version="12-11-2024"
-LABEL org.opencontainers.image.minversion="0.0.2"
+LABEL org.opencontainers.image.minversion="0.0.3"
 LABEL org.opencontainers.image.authors="Shusen Liu <shusen.liu@pawsey.org.au>"
 LABEL org.opencontainers.image.vendor="Pawsey Supercomputing Research Centre"
 LABEL org.opencontainers.image.licenses="GNU GPL3.0"
@@ -71,6 +69,7 @@ RUN apt-get update -qq \
     && update-alternatives --install /usr/bin/python python /usr/bin/python${PY_VERSION} 1 \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PY_VERSION} 1 \    
     && apt-get clean \
+    && rm -rf /root/.cache/pip && \
     && rm -rf /var/lib/apt/lists/* \
     && rm cuda-keyring_1.1-1_all.deb
 
@@ -110,10 +109,8 @@ ENV CC=/usr/bin/gcc \
     CUDACXX=/usr/local/cuda/bin/nvcc
 
 WORKDIR /opt/qiskit-aer-build
-#ENV LD_LIBRARY_PATH=/opt/cuquantum/lib:/usr/local/lib/python3.10/dist-packages/nvidia/cublas/lib:/opt/libcutensor/lib/12:/usr/local/lib/python3.10/dist-packages/nvidia/cusolver/lib:/usr/local/lib/python3.10/dist-packages/nvidia/cusparse/lib:${LD_LIBRARY_PATH:-""}
 
 ENV LD_LIBRARY_PATH=/opt/cuquantum/lib:/opt/libcutensor/lib/12:${LD_LIBRARY_PATH}
-
 
 RUN  python ./setup.py bdist_wheel -vvv --  \
     -DAER_THRUST_BACKEND=CUDA \
@@ -125,9 +122,6 @@ RUN  python ./setup.py bdist_wheel -vvv --  \
 RUN python -m pip install /opt/qiskit-aer-build/dist/qiskit_aer*.whl
 
 RUN rm -rf /opt/qiskit-aer-build/_skbuild
-#RUN python -m pip install -r /opt/qiskit-aer-build/requirements-dev.txt
-
-RUN mkdir -p /container-scratch/
 
 # and copy the recipe into the docker recipes directory
 RUN mkdir -p /opt/docker-recipes/

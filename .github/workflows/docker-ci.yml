@@ -391,7 +391,7 @@ jobs:
             name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
             path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
-  APPROVE-AND-PUSH-job:
+  PUSH-PRIV-job:
     needs: [BUILD-AND-PUSH-job, PREPARE-job]
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
@@ -458,7 +458,7 @@ jobs:
 
 
   CLEANUP-job:
-    needs: [APPROVE-PUSH-PUB-job,APPROVE-AND-PUSH-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
+    needs: [APPROVE-PUSH-PUB-job,PUSH-PRIV-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
     if: always()
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     steps:
@@ -467,7 +467,7 @@ jobs:
           sudo rm -rf $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
 
   DEPLOY-job:
-    needs: [APPROVE-AND-PUSH-job,PREPARE-job]
+    needs: [PUSH-PRIV-job,PREPARE-job]
     runs-on: Ella
     if: needs.PREPARE-job.outputs.platform_tag == 'arm'
     env:
@@ -545,7 +545,6 @@ jobs:
         run: |          
           docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
           docker push quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
 
       - name: Remove Docker images
         run: |
