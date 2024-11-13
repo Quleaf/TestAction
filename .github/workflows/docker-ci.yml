@@ -253,7 +253,7 @@ jobs:
       
 
       
-  BUILD-AND-PUSH-job:
+  BUILD-job:
     needs: PREPARE-job
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
@@ -354,7 +354,7 @@ jobs:
 
 
   SCAN-AND-REPORT-job:
-    needs: [BUILD-AND-PUSH-job, PREPARE-job]
+    needs: [BUILD-job, PREPARE-job]
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true' && needs.PREPARE-job.outputs.noscan != 'true'
     steps:
@@ -392,7 +392,7 @@ jobs:
             path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
 
   PUSH-PRIV-job:
-    needs: [BUILD-AND-PUSH-job, PREPARE-job]
+    needs: [BUILD-job, PREPARE-job]
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     env:
@@ -422,13 +422,13 @@ jobs:
           bucket: ${{ env.BUCKET }}
           destination_path: ${{ env.DESTINATION_PATH }}
 
-      # - name: Upload image tar to S3 with rclone
-      #   run: |
-      #     set -e
-      #     rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"\
-      #         --transfers=16 \
-      #         --drive-chunk-size=128M \
-      #         --multi-thread-streams=4   
+      - name: Upload image tar to S3 with rclone
+        run: |
+          set -e
+          rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"\
+              --transfers=16 \
+              --drive-chunk-size=128M \
+              --multi-thread-streams=4   
 
       - name: Login to Docker Hub       
         uses: docker/login-action@v3
@@ -458,7 +458,7 @@ jobs:
 
 
   CLEANUP-job:
-    needs: [APPROVE-PUSH-PUB-job,PUSH-PRIV-job, SCAN-AND-REPORT-job, BUILD-AND-PUSH-job, PREPARE-job]
+    needs: [APPROVE-PUSH-PUB-job,PUSH-PRIV-job, SCAN-AND-REPORT-job, BUILD-job, PREPARE-job]
     if: always()
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     steps:
@@ -466,46 +466,46 @@ jobs:
         run: |
           sudo rm -rf $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
 
-  # DEPLOY-job:
-  #   needs: [PUSH-PRIV-job,PREPARE-job]
-  #   runs-on: Ella
-  #   if: needs.PREPARE-job.outputs.platform_tag == 'arm'
-  #   env:
-  #     BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
-  #     DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/${{ needs.PREPARE-job.outputs.date }}
-  #   #environment:
-  #    # name: manual_approval  
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
+  DEPLOY-job:
+    needs: [PUSH-PRIV-job,PREPARE-job]
+    runs-on: Ella
+    if: needs.PREPARE-job.outputs.platform_tag == 'arm'
+    env:
+      BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
+      DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/${{ needs.PREPARE-job.outputs.date }}
+    #environment:
+     # name: manual_approval  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
 
-  #     - name: Setup rclone
-  #       uses: ./.github/actions/setup-rclone
-  #       with:
-  #         access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
-  #         secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
-  #         endpoint: https://projects.pawsey.org.au
-  #         bucket: ${{ env.BUCKET }}
-  #         destination_path: ${{ env.DESTINATION_PATH }}
-  #     - name: Deploy ARM image to Ella  
-  #       run: |
-  #           echo "Deploying ARM image to Ella"
-  #           echo "Hostname: $(hostname)"
-  #           echo "Deploying image: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}" to Ella
-  #           mkdir -p $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/
-  #           rclone copy pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/image.tar" $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/
-  #     - name: Convert to Singularity File
-  #       run: |
-  #           echo "Converting to Singularity File"
-  #           echo "Converting image: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}" to Singularity
-  #           source ~/.bashrc
+      - name: Setup rclone
+        uses: ./.github/actions/setup-rclone
+        with:
+          access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
+          endpoint: https://projects.pawsey.org.au
+          bucket: ${{ env.BUCKET }}
+          destination_path: ${{ env.DESTINATION_PATH }}
+      - name: Deploy ARM image to Ella  
+        run: |
+            echo "Deploying ARM image to Ella"
+            echo "Hostname: $(hostname)"
+            echo "Deploying image: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}" to Ella
+            mkdir -p $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/
+            rclone copy pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/image.tar" $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/
+      - name: Convert to Singularity File
+        run: |
+            echo "Converting to Singularity File"
+            echo "Converting image: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}" to Singularity
+            source ~/.bashrc
           
-  #           singularity build --force $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}.sif docker-archive://$MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/image.tar
+            singularity build --force $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}.sif docker-archive://$MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/image.tar
   
   APPROVE-PUSH-PUB-job:
-    needs: [BUILD-AND-PUSH-job, PREPARE-job]
+    needs: [BUILD-job, PREPARE-job]
     runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
     environment:
