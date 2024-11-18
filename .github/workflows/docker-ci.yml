@@ -434,7 +434,7 @@ jobs:
           set -e
       
           # calculate file size
-          FILE_SIZE=$(stat -c%s "${{ github.workspace }}/image.tar")
+          FILE_SIZE=$(wc -c < "${{ github.workspace }}/image.tar")
           echo "File size: $FILE_SIZE bytes"
       
           # dynamically set rclone parameters based on file size: 500MB, 5G,others

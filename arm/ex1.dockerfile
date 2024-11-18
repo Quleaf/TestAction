@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.arch=arm
 LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
 LABEL org.opencontainers.image.noscan=true
-LABEL org.opencontainers.image.minversion="0.0.3"
+LABEL org.opencontainers.image.minversion="0.0.4"
 
 ENV MYVALUE="VALUE1"
 # Install curl package
