@@ -1,4 +1,7 @@
 name: ci
+# Version 1.0.0
+# This workflow is triggered on push events to the repository
+# Please find readme.md for the usage of this workflow
 
 on:
   push:
