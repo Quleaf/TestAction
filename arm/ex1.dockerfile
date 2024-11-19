@@ -8,7 +8,7 @@ LABEL org.opencontainers.image.devmode=false
 LABEL org.opencontainers.image.noscan=true
 LABEL org.opencontainers.image.minversion="0.0.5"
 
-ENV MYVALUE="VALUE1"
+ENV MYVALUE="VALUE2"
 # Install curl package
 #RUN apk add --no-cache curl
 
