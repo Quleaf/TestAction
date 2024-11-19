@@ -7,6 +7,7 @@ LABEL org.opencontainers.image.compilation=auto
 LABEL org.opencontainers.image.devmode=false
 LABEL org.opencontainers.image.noscan=true
 LABEL org.opencontainers.image.minversion="0.0.6"
+LABEL org.opencontainers.image.noscanreason="devops"
 
 ENV MYVALUE="VALUE2"
 # Install curl package
