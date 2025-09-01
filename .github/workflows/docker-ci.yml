@@ -508,68 +508,19 @@ jobs:
         echo "archive_path=${archive_file}" >> "$GITHUB_OUTPUT"
         echo "archive_name=${archive_name}" >> "$GITHUB_OUTPUT"
 
-    - name: Prepare report dir and template
+    - name: Prepare report directory
       run: |
-        mkdir -p "${REPORT_DIR}" .github
-        
-        # Create template using printf to avoid YAML parsing issues
-        printf '%s\n' \
-          '## Trivy Scan Summary — {{ .ArtifactName }}' \
-          '' \
-          'Target: {{ .ArtifactName }}' \
-          'Scanned: {{ .GeneratedAt }}' \
-          '' \
-          '### Severity Counts' \
-          '- CRITICAL: {{ .Summary.Critical }}' \
-          '- HIGH: {{ .Summary.High }}' \
-          '- MEDIUM: {{ .Summary.Medium }}' \
-          '- LOW: {{ .Summary.Low }}' \
-          '- UNKNOWN: {{ .Summary.Unknown }}' \
-          '' \
-          '{{- if .Results }}' \
-          '### Critical & High Vulnerabilities' \
-          '| Severity | CVE ID | Package | Installed | Fixed |' \
-          '|----------|--------|---------|-----------|-------|' \
-          '{{- $n := 0 -}}' \
-          '{{- range .Results }}' \
-          '  {{- range .Vulnerabilities }}' \
-          '    {{- if or (eq .Severity "CRITICAL") (eq .Severity "HIGH") -}}' \
-          '| {{ .Severity }} | {{ .VulnerabilityID }} | {{ .PkgName }} | {{ .InstalledVersion }} | {{ .FixedVersion }} |' \
-          '      {{- $n = add $n 1 -}}' \
-          '      {{- if ge $n 20 }}{{ break }}{{ end -}}' \
-          '    {{- end -}}' \
-          '  {{- end }}' \
-          '{{- end }}' \
-          '{{- if eq $n 0 }}' \
-          '' \
-          'No CRITICAL/HIGH vulnerabilities found.' \
-          '{{- end }}' \
-          '{{- else }}' \
-          '' \
-          'No scan results available.' \
-          '{{- end }}' \
-          > .github/trivy-summary.tpl
+        mkdir -p "${REPORT_DIR}"
+        echo "Report directory created: ${REPORT_DIR}"
 
-    - name: Debug template and files
-      run: |
-        echo "=== Template file exists? ==="
-        ls -la .github/trivy-summary.tpl || echo "Template file not found"
-        echo ""
-        echo "=== Template content ==="
-        cat .github/trivy-summary.tpl || echo "Cannot read template"
-        echo ""
-        echo "=== Archive file exists? ==="
-        ls -la ./${{ steps.locate.outputs.archive_name }} || echo "Archive not found"
-
-    # Generate Markdown summary for Actions Summary
-    - name: Trivy (Markdown summary for Actions Summary)
+    # Generate JSON report first
+    - name: Trivy (JSON scan for processing)
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: image
         input: ./${{ steps.locate.outputs.archive_name }}
-        format: template
-        template: ./.github/trivy-summary.tpl
-        output: ${{ env.REPORT_DIR }}/summary.md
+        format: json
+        output: ${{ env.REPORT_DIR }}/scan-results.json
         severity: CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN
         ignore-unfixed: true
         vuln-type: os,library
@@ -579,6 +530,86 @@ jobs:
       env:
         TRIVY_SKIP_DB_UPDATE: false
         TRIVY_SKIP_JAVA_DB_UPDATE: false
+
+    # Process JSON to create readable summary
+    - name: Generate readable summary from JSON
+      run: |
+        python3 -c "
+        import json
+        import sys
+        import os
+        
+        json_file = '${REPORT_DIR}/scan-results.json'
+        output_file = '${REPORT_DIR}/summary.md'
+        
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+            
+            # Initialize counters
+            counts = {'CRITICAL': 0, 'HIGH': 0, 'MEDIUM': 0, 'LOW': 0, 'UNKNOWN': 0}
+            vulnerabilities = []
+            
+            # Process results
+            if 'Results' in data and data['Results']:
+                for result in data['Results']:
+                    if 'Vulnerabilities' in result and result['Vulnerabilities']:
+                        for vuln in result['Vulnerabilities']:
+                            severity = vuln.get('Severity', 'UNKNOWN')
+                            if severity in counts:
+                                counts[severity] += 1
+                            vulnerabilities.append(vuln)
+            
+            # Generate summary
+            with open(output_file, 'w') as f:
+                artifact_name = data.get('ArtifactName', 'Unknown')
+                f.write(f'## Trivy Scan Summary — {artifact_name}\n\n')
+                f.write(f'**Target:** {artifact_name}\n')
+                f.write(f'**Total Vulnerabilities:** {sum(counts.values())}\n\n')
+                
+                f.write('### Severity Counts\n')
+                for severity, count in counts.items():
+                    if count > 0:
+                        f.write(f'- **{severity}:** {count}\n')
+                    else:
+                        f.write(f'- {severity}: {count}\n')
+                f.write('\n')
+                
+                # Show critical and high details
+                critical_high = [v for v in vulnerabilities if v.get('Severity') in ['CRITICAL', 'HIGH']]
+                if critical_high:
+                    f.write('### Critical & High Severity Vulnerabilities\n\n')
+                    f.write('| Severity | CVE ID | Package | Installed | Fixed |\n')
+                    f.write('|----------|--------|---------|-----------|-------|\n')
+                    for vuln in critical_high[:15]:  # Limit to first 15
+                        severity = vuln.get('Severity', 'N/A')
+                        cve_id = vuln.get('VulnerabilityID', 'N/A')
+                        pkg = vuln.get('PkgName', 'N/A')
+                        installed = vuln.get('InstalledVersion', 'N/A')
+                        fixed = vuln.get('FixedVersion', 'N/A') or '❌'
+                        f.write(f'| {severity} | {cve_id} | {pkg} | {installed} | {fixed} |\n')
+                    
+                    if len(critical_high) > 15:
+                        f.write(f'\n*... and {len(critical_high) - 15} more critical/high vulnerabilities.*\n')
+                elif sum(counts.values()) > 0:
+                    f.write('### Good News! 🎉\n\n')
+                    f.write('No CRITICAL or HIGH severity vulnerabilities found.\n')
+                    if counts['MEDIUM'] > 0:
+                        f.write(f'Only {counts[\"MEDIUM\"]} MEDIUM severity issues detected.\n')
+                else:
+                    f.write('### Excellent! ✅\n\n')
+                    f.write('No vulnerabilities found in this image.\n')
+            
+            print(f'Successfully generated summary: {output_file}')
+            
+        except Exception as e:
+            with open(output_file, 'w') as f:
+                f.write(f'### ❌ Error Processing Scan Results\n\n')
+                f.write(f'**Error:** {str(e)}\n\n')
+                f.write(f'**JSON file:** {json_file}\n')
+                f.write(f'**File exists:** {os.path.exists(json_file)}\n')
+            print(f'Error: {e}', file=sys.stderr)
+        "
 
     - name: Debug Trivy output
       run: |
