@@ -252,6 +252,9 @@ jobs:
     needs: PREPARE-job
     runs-on: setonix-podman02
     if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    outputs:
+      image_tag: ${{ steps.build_container.outputs.image_tag }}
+      dockerfile_name: ${{ steps.build_container.outputs.dockerfile_name }}
     steps:
       - name: Print hostname
         run: |
@@ -337,8 +340,6 @@ jobs:
           echo "Tag: ${dockerfile_name}:${version}"
           
           # Build with layer caching enabled
-          # The --layers flag enables layer caching which is the most reliable method
-          echo "[CACHE STRATEGY]: Using podman layer caching (--layers)"
           
           podman build --format=docker \
             --layers \
@@ -401,7 +402,6 @@ jobs:
           # Output Variables:
           # - archive_file: Archive filename only (e.g., "ex1_0.0.5.tar")
           # - archive_path: Full path to archive (e.g., "/home/runner/work/repo/ex1_0.0.5.tar")
-          # Usage in next steps: ${{ steps.save_container.outputs.archive_file }}
           echo "archive_file=$output_file" >> $GITHUB_OUTPUT
           echo "archive_path=${PWD}/$output_file" >> $GITHUB_OUTPUT
 
@@ -463,147 +463,90 @@ jobs:
 
 
       
-  # BUILD-job:
-  #   needs: PREPARE-job
-  #   runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
-  #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-  #   steps:
-  #     - name: Print hostname
-  #       run: |
-  #         echo "Hostname: $(hostname)"
+
+
+  SCAN-AND-REPORT-job:
+    needs: [BUILD-job, PREPARE-job]
+    runs-on: setonix-podman02
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true' && needs.PREPARE-job.outputs.noscan != 'true'
+    steps:
+      - name: Print hostname
+        run: |
+          echo "Hostname: $(hostname)"
+          
+      - name: Locate and copy archive from persistent storage
+        id: locate_archive
+        run: |
+          # Get variables from BUILD-job outputs (via PREPARE-job)
+          dockerfile_name="${{ needs.BUILD-job.outputs.dockerfile_name }}"
+          version="${{ needs.PREPARE-job.outputs.version }}"
+          
+          # Persistent storage location
+          PERSISTENT_DIR="/container/${USER}/artifacts"
+          echo "Searching for archive in: $PERSISTENT_DIR"
+          
+          # Find the archive file (look for exact version match first, then latest)
+          archive_file=""
+          if [ -f "$PERSISTENT_DIR/${dockerfile_name}_${version}_"*.tar ]; then
+            archive_file=$(ls -t "$PERSISTENT_DIR/${dockerfile_name}_${version}_"*.tar | head -1)
+          elif [ -f "$PERSISTENT_DIR/${dockerfile_name}_latest.tar" ]; then
+            archive_file="$PERSISTENT_DIR/${dockerfile_name}_latest.tar"
+          fi
+          
+          if [ -z "$archive_file" ]; then
+            echo "✗ Archive not found in persistent storage"
+            echo "  Searched for: ${dockerfile_name}_${version}_*.tar"
+            echo "  Also searched for: ${dockerfile_name}_latest.tar"
+            ls -la "$PERSISTENT_DIR" || echo "  Directory not accessible"
+            exit 1
+          fi
+          
+          # Copy archive to current workspace with original name
+          archive_filename=$(basename "$archive_file")
+          echo "Found archive: $archive_file"
+          cp "$archive_file" "./$archive_filename"
+          
+          if [ -f "./$archive_filename" ]; then
+            file_size=$(ls -lh "./$archive_filename" | awk '{print $5}')
+            echo "✓ Archive copied successfully"
+            echo "  [SOURCE]: $archive_file"
+            echo "  [TARGET]: ${PWD}/$archive_filename"
+            echo "  [SIZE]: $file_size"
+          else
+            echo "✗ Failed to copy archive"
+            exit 1
+          fi
+          
+          echo "archive_source=$archive_file" >> $GITHUB_OUTPUT
+          echo "archive_filename=$archive_filename" >> $GITHUB_OUTPUT
+          
+      - name: Create Trivy report directory
+        run: mkdir -p ./trivy-reports
+
+      - name: Scan the Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          input: './${{ steps.locate_archive.outputs.archive_filename }}'        
+          format: 'table'
+          output: './trivy-reports/trivy-report-${{ needs.BUILD-job.outputs.dockerfile_name }}.txt'
+          severity: 'MEDIUM,CRITICAL,HIGH'
       
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
+      - name: Add Trivy report to GitHub Actions summary
+        run: |
+          echo '## Trivy Scan Report for ${{ needs.BUILD-job.outputs.dockerfile_name }}' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '[SCAN TARGET]: ${{ steps.locate_archive.outputs.archive_filename }}' >> $GITHUB_STEP_SUMMARY
+          echo '[ARCHIVE SOURCE]: ${{ steps.locate_archive.outputs.archive_source }}' >> $GITHUB_STEP_SUMMARY
+          echo '[VERSION]: ${{ needs.PREPARE-job.outputs.version }}' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          cat ./trivy-reports/trivy-report-${{ needs.BUILD-job.outputs.dockerfile_name }}.txt >> $GITHUB_STEP_SUMMARY
 
-  #     - name: Set up QEMU
-  #       uses: docker/setup-qemu-action@v3
-  #       with:
-  #         platforms: ${{ needs.PREPARE-job.outputs.platform }}
-
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v3
-  #       with:
-  #         driver: docker-container
-  #         install: true
-    
-  #     - name: Show current Buildx builders
-  #       run: docker buildx ls
-
-  #     - name: Enable BuildKit
-  #       run: |
-  #         echo ${{ needs.PREPARE-job.outputs.runner_label}} 
-  #         echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV 
-
-  #     - name: Check and set docker cache location
-  #       id: docker_cache_check
-  #       run: |
-  #         CACHE_DIR="$HOME/runner/docker-cache"
-  #         echo "CACHE_DIR=$CACHE_DIR"
-
-  #         if [ -d "$CACHE_DIR" ]; then
-  #           echo "Cache directory exists."
-  #           CACHE_SIZE=$(du -sh "$CACHE_DIR" | cut -f1)
-  #           echo "Cache directory size: $CACHE_SIZE"
-  #         else
-  #           echo "Cache directory does not exist. Creating..."
-  #           if sudo mkdir -p "$CACHE_DIR"; then
-  #             sudo chown $(whoami):$(id -gn) "$CACHE_DIR"
-  #             echo "Cache directory created successfully."
-  #           else
-  #             echo "Failed to create cache directory: $CACHE_DIR" >&2
-  #             exit 1
-  #           fi
-  #         fi
-
-  #         echo "HOME=$HOME"
-  #         echo "CACHELOC=$CACHE_DIR" >> $GITHUB_ENV
-  #         echo "CACHELOC is set to ${CACHE_DIR} ".           
-
-  #     - name: Build Docker image locally, save to tar file and move to persistent storage
-  #       uses: docker/build-push-action@v6
-  #       if: needs.PREPARE-job.outputs.devmode != 'true'
-  #       with:
-  #         context: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.directory }}
-  #         file: ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.files }}
-  #         tags: | 
-  #           ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-  #         platforms: ${{ needs.PREPARE-job.outputs.platform }}
-  #         push: false
-  #         load: true
-  #         provenance: false
-  #         cache-from: type=local,src=${{env.CACHELOC}}
-  #         cache-to: type=local,dest=${{env.CACHELOC}},mode=max
-  #         # cache-from: type=gha
-  #         # cache-to: type=gha,mode=max
-
-  #     - name: Build Docker image locally, for development mode
-  #       env:
-  #         CACHELOC: ${{ env.CACHELOC }}
-  #       if: needs.PREPARE-job.outputs.devmode == 'true'
-  #       run: |
-  #         docker buildx build \
-  #           --progress plain \
-  #           --cache-from type=local,src=${CACHELOC} \
-  #           --cache-to type=local,dest=${CACHELOC},mode=max \
-  #           --provenance=false \
-  #           --load \
-  #           --platform ${{ needs.PREPARE-job.outputs.platform }} \
-  #           --file ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.files }} \
-  #           --tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} \
-  #           ${{ github.workspace }}/${{ needs.PREPARE-job.outputs.directory }}
-
-  #     - name: Save Docker image to tar file
-  #       run: |
-  #         docker save -o ${GITHUB_WORKSPACE}/image.tar ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-  #         echo "Docker image saved to ${GITHUB_WORKSPACE}/image.tar"
-
-  #     - name: Move image.tar to local persistent storage "$HOME/runner/artifacts"
-  #       run: |
-  #         sudo mkdir -p $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
-  #         sudo chown -R $(whoami):$(id -gn) $HOME/runner/artifacts/
-  #         cp ${GITHUB_WORKSPACE}/image.tar $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar
-  #         echo "Moved image.tar to $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar"
-
-
-  # SCAN-AND-REPORT-job:
-  #   needs: [BUILD-job, PREPARE-job]
-  #   runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
-  #   if: needs.PREPARE-job.outputs.proceed_valid == 'true' && needs.PREPARE-job.outputs.noscan != 'true'
-  #   steps:
-  #     - name: Print hostname
-  #       run: |
-  #         echo "Hostname: $(hostname)"
-  #     - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory 
-  #       run: |
-  #         if [ -f "$HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar" ]; then
-  #           echo "File already exists, skipping copy."
-  #         else
-  #           cp $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
-  #           echo "Copied image.tar from $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
-  #         fi
-  #     - name: Create Trivy report directory
-  #       run: mkdir -p ./trivy-reports
-  
-  #     - name: Scan the Docker image with Trivy
-  #       uses: aquasecurity/trivy-action@master
-  #       with:
-  #         input: './image.tar'        
-  #         format: 'table'
-  #         output: './trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt'
-  #         severity: 'MEDIUM,CRITICAL,HIGH'
-      
-  #     - name: Add Trivy report to GitHub Actions summary
-  #       run: |
-  #         echo '## Trivy Scan Report for ${{ needs.PREPARE-job.outputs.dockerfile_name }}' >> $GITHUB_STEP_SUMMARY
-  #         cat ./trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}.txt >> $GITHUB_STEP_SUMMARY
-
-  #     - name: Upload Trivy scan report
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #           name: trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name }}
-  #           path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.PREPARE-job.outputs.dockerfile_name}}.txt
+      - name: Upload Trivy scan report
+        uses: actions/upload-artifact@v4
+        with:
+            name: trivy-report-${{ needs.BUILD-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.version }}
+            path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.BUILD-job.outputs.dockerfile_name }}.txt
+            retention-days: 30
 
   # PUSH-PRIV-job:
   #   needs: [BUILD-job, PREPARE-job]
