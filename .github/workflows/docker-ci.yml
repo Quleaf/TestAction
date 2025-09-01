@@ -344,8 +344,8 @@ jobs:
           
           # Build with volume mounts for apt cache (persistent across builds)
           podman build --format=docker \
-            --volume "${CACHE_DIR}/apt:/var/cache/apt:Z" \
-            --volume "${CACHE_DIR}/apt-lists:/var/lib/apt/lists:Z" \
+            --volume "${CACHE_DIR}/apt:/var/cache/apt" \
+            --volume "${CACHE_DIR}/apt-lists:/var/lib/apt/lists" \
             --layers \
             -f "$dockerfile_path" \
             -t "${dockerfile_name}:${version}" \
