@@ -17,6 +17,7 @@ jobs:
       devmode: ${{ steps.set_proceed_flag.outputs.devmode }}
       noscan: ${{ steps.set_proceed_flag.outputs.noscan }}
       files: ${{ steps.changed_files.outputs.files }}
+      date: ${{ steps.date.outputs.date }}
     
     steps:
       - name: Set default runner label
@@ -232,109 +233,13 @@ jobs:
           echo "devmode=${{ steps.parse_settings.outputs.devmode || 'false' }}" >> $GITHUB_OUTPUT
           echo "noscan=${{ steps.parse_settings.outputs.noscan || 'false' }}" >> $GITHUB_OUTPUT 
 
-  #     - name: Parse file path
-  #       if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
-  #       id: parse_path
-  #       run: |
-  #         file="${{ steps.changed_files.outputs.files }}"
-  #         echo "File: $file"
-  #         dir=$(dirname "$file")
-  #         echo "Directory: $dir"
-  #         base=$(basename "$file")
-  #         echo "Base: $base"
-  #         dockerfile_name="${base%.*}"
-  #         echo "Dockerfile name: $dockerfile_name"
-  #         # Determine platform by checking file contents
-  #         if grep -q -E '^[^#]*LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(arm|aarch64|arm64)' "$file"; then
-  #           platform="linux/arm64"
-  #           platform_tag="arm"            
-  #         elif grep -q -E '^[^#]*LABEL\s+org\.opencontainers\.image\.arch\s*=\s*(x86|amd64|x86_64)' "$file"; then
-  #           platform="linux/amd64"
-  #           platform_tag="x86"
-  #         else
-  #           echo "No known architecture label found in $file. Exiting."
-  #           exit 1
-  #         fi
-  #         echo "Platform: $platform"
-  #         echo "Platform tag: $platform_tag"
-  #         echo "dockerfile_name=$dockerfile_name" >> $GITHUB_OUTPUT
-  #         echo "platform=$platform" >> $GITHUB_OUTPUT
-  #         echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-  #         echo "directory=$dir" >> $GITHUB_OUTPUT
-  #         exit 0 
-
-  #     - name: Set current date
-  #       if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
-  #       id: date
-  #       run: |
-  #         date_tag=$(date +'%m-%d')
-  #         echo "Date tag: $date_tag"
-  #         echo "date=$date_tag" >> $GITHUB_OUTPUT
-      
-  #     - name: Determine runner label
-  #       if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
-  #       id: determine_runner
-  #       uses: actions/github-script@v7
-  #       with:
-  #         github-token: ${{secrets.PAT_TOKEN}}
-  #         script: |
-  #           let runner_label = 'X64';
-  #           const platform = '${{ steps.parse_path.outputs.platform }}';
-  #           if (platform === 'linux/arm64') {
-  #             const runners = await github.paginate(
-  #               github.rest.actions.listSelfHostedRunnersForRepo,
-  #               {
-  #                 owner: context.repo.owner,
-  #                 repo: context.repo.repo,
-  #               }
-  #             );
-
-  #             console.log(`Total runners found: ${runners.length}`);
-
-  #             runners.forEach(runner => {
-  #             const labels = runner.labels.map(label => label.name);
-  #             console.log(`Runner ID: ${runner.id}, Name: ${runner.name}, Status: ${runner.status}, Labels: ${labels.join(', ')}`);
-  #             });
-
-  #             let found = false;
-  #             for (const runner of runners) {
-  #               if (runner.status === 'online') {
-  #                 const labels = runner.labels.map(label => label.name);
-  #                 if (labels.includes('ARM64')) {
-  #                   runner_label = 'ARM64';
-  #                   console.log(`Found online runner with label "ARM64": Runner ID ${runner.id}, Name ${runner.name}`);
-  #                   found = true;
-  #                   break;
-  #                 }
-  #               }
-  #             }
-  #             if (found) {
-  #               console.log('Found online runner with label "ARM64"');
-  #             } else {
-  #               console.log('No online runner with label "ARM64" found, using default runner');
-  #             }
-  #           } else {
-  #             console.log('Platform is not linux/arm64, using default X64 runner');
-  #           }
-  #           core.setOutput('runner_label', runner_label);
-
-  #     - name: Overwrite runner label
-  #       id: set_runner_label
-  #       run: |
-  #         if [ -n "${{ steps.determine_runner.outputs.runner_label }}" ]; then
-  #           echo "runner_label=${{ steps.determine_runner.outputs.runner_label }}" >> $GITHUB_OUTPUT
-  #         else
-  #           echo "runner_label=${{ steps.set_default_runner_label.outputs.runner_label }}" >> $GITHUB_OUTPUT
-  #         fi
-
-  #     - name: Debug variables before build
-  #       if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
-  #       run: |
-  #         echo "Context: ${{ github.workspace }}/${{ steps.parse_path.outputs.directory }}"
-  #         echo "File: ${{ github.workspace }}/${{ steps.changed_files.outputs.files }}"
-  #         echo "Tag: ${{ vars.DOCKERHUB_USERNAME }}/${{ steps.parse_path.outputs.dockerfile_name }}-${{ steps.parse_path.outputs.platform_tag }}:${{ steps.date.outputs.date }}"
-  #         echo "Platforms: ${{ steps.parse_path.outputs.platform }}"
-  #         echo "Runner label: ${{ steps.determine_runner.outputs.runner_label }}"
+      - name: Set current date
+        if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
+        id: date
+        run: |
+          date_tag=$(date +'%m-%d')
+          echo "Date tag: $date_tag"
+          echo "date=$date_tag" >> $GITHUB_OUTPUT
       
 
       
