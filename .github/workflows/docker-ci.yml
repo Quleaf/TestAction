@@ -369,6 +369,62 @@ jobs:
           echo "archive_file=$output_file" >> $GITHUB_OUTPUT
           echo "archive_path=${PWD}/$output_file" >> $GITHUB_OUTPUT
 
+      - name: Copy to persistent local storage
+        id: persistent_storage
+        run: |
+          # Get variables
+          archive_file="${{ steps.save_container.outputs.archive_file }}"
+          dockerfile_name="${{ steps.build_container.outputs.dockerfile_name }}"
+          version="${{ needs.PREPARE-job.outputs.version }}"
+          
+          # Define persistent storage directory
+          PERSISTENT_DIR="/container/${USER}/artifacts"
+          echo "Setting up persistent storage at: $PERSISTENT_DIR"
+          
+          # Create directory if it doesn't exist
+          mkdir -p "$PERSISTENT_DIR"
+          
+          # Copy archive to persistent storage with timestamp
+          timestamp=$(date +"%Y%m%d_%H%M%S")
+          persistent_filename="${dockerfile_name}_${version}_${timestamp}.tar"
+          persistent_path="$PERSISTENT_DIR/$persistent_filename"
+          
+          echo "Copying archive to persistent storage..."
+          echo "Source: $archive_file"
+          echo "Destination: $persistent_path"
+          
+          if cp "$archive_file" "$persistent_path"; then
+            # Verify the copy
+            if [ -f "$persistent_path" ]; then
+              file_size=$(ls -lh "$persistent_path" | awk '{print $5}')
+              echo "✓ Archive successfully copied to persistent storage"
+              echo "  [LOCATION]: $persistent_path"
+              echo "  [SIZE]: $file_size"
+              echo "  [TIMESTAMP]: $timestamp"
+              
+              # Also create a symlink to latest version (without timestamp)
+              latest_link="$PERSISTENT_DIR/${dockerfile_name}_latest.tar"
+              ln -sf "$persistent_filename" "$latest_link"
+              echo "  [LATEST LINK]: $latest_link"
+              
+              # List all archives for this dockerfile
+              echo "  [ALL VERSIONS]:"
+              ls -la "$PERSISTENT_DIR/${dockerfile_name}_"*.tar 2>/dev/null || echo "    (No previous versions found)"
+              
+            else
+              echo "✗ Archive copy verification failed"
+              exit 1
+            fi
+          else
+            echo "✗ Failed to copy archive to persistent storage"
+            exit 1
+          fi
+          
+          # Set outputs
+          echo "persistent_path=$persistent_path" >> $GITHUB_OUTPUT
+          echo "persistent_dir=$PERSISTENT_DIR" >> $GITHUB_OUTPUT
+          echo "latest_link=$latest_link" >> $GITHUB_OUTPUT
+
 
       
   # BUILD-job:
