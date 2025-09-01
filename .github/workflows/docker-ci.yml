@@ -512,38 +512,52 @@ jobs:
       run: |
         mkdir -p "${REPORT_DIR}" .github
         cat > .github/trivy-summary.tpl <<'EOF'
-        ## Trivy Scan Summary — {{ .ArtifactName }}
-        
-        Target: {{ .ArtifactName }}  •  Scanned: {{ .GeneratedAt }}
-        
-        Severity counts:
-        - CRITICAL: {{ .Summary.Critical }}
-        - HIGH: {{ .Summary.High }}
-        - MEDIUM: {{ .Summary.Medium }}
-        - LOW: {{ .Summary.Low }}
-        - UNKNOWN: {{ .Summary.Unknown }}
-        
-        {{- if .Results }}
-        ### Top findings (CRITICAL/HIGH)
-        | Severity | ID | Package | Version | Fixed | URL |
-        |----------|-------|----------|----------|----------|---------|
-        {{- $n := 0 -}}
-        {{- range .Results }}
-          {{- range .Vulnerabilities }}
-            {{- if or (eq .Severity "CRITICAL") (eq .Severity "HIGH") -}}
-              | {{ .Severity }} | {{ .VulnerabilityID }} | {{ .PkgName }} | {{ .InstalledVersion }} | {{ .FixedVersion }} | {{ .PrimaryURL }} |
-              {{- $n = add $n 1 -}}
-              {{- if ge $n 50 }}{{ break }}{{ end -}}
-            {{- end -}}
-          {{- end }}
-        {{- end }}
-        {{- if eq $n 0 }}
-        _No CRITICAL/HIGH vulnerabilities found._
-        {{- end }}
-        {{- else }}
-        _No results._
-        {{- end }}
-        EOF
+## Trivy Scan Summary — {{ .ArtifactName }}
+
+**Target:** {{ .ArtifactName }}  
+**Scanned:** {{ .GeneratedAt }}
+
+### Severity Counts
+- **CRITICAL:** {{ .Summary.Critical }}
+- **HIGH:** {{ .Summary.High }}  
+- **MEDIUM:** {{ .Summary.Medium }}
+- **LOW:** {{ .Summary.Low }}
+- **UNKNOWN:** {{ .Summary.Unknown }}
+
+{{- if .Results }}
+### Critical & High Severity Vulnerabilities
+| Severity | CVE ID | Package | Installed | Fixed | 
+|----------|--------|---------|-----------|-------|
+{{- $n := 0 -}}
+{{- range .Results }}
+  {{- range .Vulnerabilities }}
+    {{- if or (eq .Severity "CRITICAL") (eq .Severity "HIGH") -}}
+| {{ .Severity }} | {{ .VulnerabilityID }} | {{ .PkgName }} | {{ .InstalledVersion }} | {{ .FixedVersion }} |
+      {{- $n = add $n 1 -}}
+      {{- if ge $n 20 }}{{ break }}{{ end -}}
+    {{- end -}}
+  {{- end }}
+{{- end }}
+{{- if eq $n 0 }}
+
+*No CRITICAL/HIGH vulnerabilities found.*
+{{- end }}
+{{- else }}
+
+*No scan results available.*
+{{- end }}
+EOF
+
+    - name: Debug template and files
+      run: |
+        echo "=== Template file exists? ==="
+        ls -la .github/trivy-summary.tpl || echo "Template file not found"
+        echo ""
+        echo "=== Template content ==="
+        cat .github/trivy-summary.tpl || echo "Cannot read template"
+        echo ""
+        echo "=== Archive file exists? ==="
+        ls -la ./${{ steps.locate.outputs.archive_name }} || echo "Archive not found"
 
     # Generate Markdown summary for Actions Summary
     - name: Trivy (Markdown summary for Actions Summary)
@@ -564,6 +578,17 @@ jobs:
         TRIVY_SKIP_DB_UPDATE: false
         TRIVY_SKIP_JAVA_DB_UPDATE: false
 
+    - name: Debug Trivy output
+      run: |
+        echo "=== Trivy output file exists? ==="
+        ls -la "${REPORT_DIR}/summary.md" || echo "Summary file not found"
+        echo ""
+        echo "=== Trivy output content ==="
+        cat "${REPORT_DIR}/summary.md" || echo "Cannot read summary file"
+        echo ""
+        echo "=== Report directory contents ==="
+        ls -la "${REPORT_DIR}/" || echo "Report directory not found"
+
     - name: Append to GitHub Actions summary
       run: |
         {
@@ -573,7 +598,27 @@ jobs:
           echo "- **Archive source**: \`${{ steps.locate.outputs.archive_path }}\`"
           echo "- **Version**: \`${{ env.VERSION }}\`"
           echo ""
-          cat "${REPORT_DIR}/summary.md"
+          
+          # Check if summary file exists and has content
+          if [ -f "${REPORT_DIR}/summary.md" ] && [ -s "${REPORT_DIR}/summary.md" ]; then
+            echo "### Scan Results"
+            cat "${REPORT_DIR}/summary.md"
+          else
+            echo "### ⚠️ Scan Results"
+            echo ""
+            echo "**Status:** Summary file not generated or empty"
+            echo ""
+            echo "**Possible causes:**"
+            echo "- Trivy template processing failed"
+            echo "- Archive file format issue"
+            echo "- Trivy action configuration problem"
+            echo ""
+            echo "**Debug info:**"
+            echo "- Template file: \`.github/trivy-summary.tpl\`"
+            echo "- Expected output: \`${REPORT_DIR}/summary.md\`"
+            echo ""
+            echo "Check the debug steps above for more details."
+          fi
         } >> "$GITHUB_STEP_SUMMARY"
 
     # Generate SARIF report for GitHub Security
