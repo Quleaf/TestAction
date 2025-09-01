@@ -547,7 +547,7 @@ jobs:
 
     # Generate Markdown summary for Actions Summary
     - name: Trivy (Markdown summary for Actions Summary)
-      uses: aquasecurity/trivy-action@v0.24.0
+      uses: aquasecurity/trivy-action@master
       with:
         scan-type: image
         input: ./${{ steps.locate.outputs.archive_name }}
@@ -578,7 +578,7 @@ jobs:
 
     # Generate SARIF report for GitHub Security
     - name: Trivy (SARIF for GitHub Security)
-      uses: aquasecurity/trivy-action@v0.24.0
+      uses: aquasecurity/trivy-action@master
       if: always()
       with:
         scan-type: image
