@@ -687,7 +687,128 @@ jobs:
         path: ${{ env.REPORT_DIR }}/
         retention-days: 30
 
-  # PUSH-PRIV-job:
+  PUSH-PRIV-job:
+    needs: [BUILD-job, PREPARE-job]
+    runs-on: setonix-podman02
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    env:
+      DOCKERFILE_NAME: ${{ needs.BUILD-job.outputs.dockerfile_name }}
+      VERSION: ${{ needs.PREPARE-job.outputs.version }}
+      BUCKET: cicd-container-image
+      PERSISTENT_DIR: /container/${{ github.actor }}/artifacts
+    steps:
+    - name: Print hostname
+      run: |
+        echo "Hostname: $(hostname)"
+
+    - name: Locate and copy archive from persistent storage
+      id: locate_archive
+      run: |
+        # Find the archive file (version-specific or latest)
+        PERSISTENT_DIR="/container/${USER}/artifacts"
+        echo "Searching for archive in: $PERSISTENT_DIR"
+        
+        # Find exact version match first, then fallback to latest
+        archive_file=""
+        if ls "${PERSISTENT_DIR}/${DOCKERFILE_NAME}_${VERSION}_"*.tar 1> /dev/null 2>&1; then
+          archive_file=$(ls -t "${PERSISTENT_DIR}/${DOCKERFILE_NAME}_${VERSION}_"*.tar | head -1)
+        elif [ -f "${PERSISTENT_DIR}/${DOCKERFILE_NAME}_latest.tar" ]; then
+          archive_file="${PERSISTENT_DIR}/${DOCKERFILE_NAME}_latest.tar"
+        fi
+        
+        if [ -z "$archive_file" ]; then
+          echo "✗ Archive not found in persistent storage"
+          echo "  Searched for: ${DOCKERFILE_NAME}_${VERSION}_*.tar"
+          echo "  Also searched for: ${DOCKERFILE_NAME}_latest.tar"
+          ls -la "$PERSISTENT_DIR" || echo "  Directory not accessible"
+          exit 1
+        fi
+        
+        # Set destination filename (without timestamp)
+        destination_filename="${DOCKERFILE_NAME}_${VERSION}.tar"
+        
+        # Copy to workspace
+        cp "$archive_file" "./$destination_filename"
+        
+        if [ -f "./$destination_filename" ]; then
+          file_size=$(ls -lh "./$destination_filename" | awk '{print $5}')
+          echo "✓ Archive copied successfully"
+          echo "  [SOURCE]: $archive_file"
+          echo "  [DESTINATION]: ${PWD}/$destination_filename"
+          echo "  [SIZE]: $file_size"
+        else
+          echo "✗ Failed to copy archive"
+          exit 1
+        fi
+        
+        echo "archive_source=$archive_file" >> $GITHUB_OUTPUT
+        echo "archive_file=$destination_filename" >> $GITHUB_OUTPUT
+        echo "archive_path=${PWD}/$destination_filename" >> $GITHUB_OUTPUT
+
+    - name: Setup rclone
+      uses: ./.github/actions/setup-rclone
+      with:
+        access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
+        secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
+        endpoint: https://projects.pawsey.org.au
+        bucket: ${{ env.BUCKET }}
+        destination_path: ${{ steps.locate_archive.outputs.archive_file }}
+
+    - name: Upload container archive to S3 with rclone
+      run: |
+        set -euo pipefail
+        
+        archive_file="${{ steps.locate_archive.outputs.archive_file }}"
+        bucket="${{ env.BUCKET }}"
+        
+        echo "=== S3 Upload Configuration ==="
+        echo "Archive file: $archive_file"
+        echo "Bucket: $bucket"
+        echo "Destination: $archive_file"
+        echo ""
+        
+        # Calculate file size for optimization
+        FILE_SIZE=$(wc -c < "$archive_file")
+        echo "File size: $FILE_SIZE bytes"
+        
+        # Set rclone parameters based on file size
+        if [ "$FILE_SIZE" -lt $((1024 * 1024 * 500)) ]; then
+          # < 500MB
+          S3_CHUNK_SIZE="16M"
+          S3_UPLOAD_CONCURRENCY=4
+          MULTI_THREAD_STREAMS=2
+        elif [ "$FILE_SIZE" -lt $((1024 * 1024 * 5000)) ]; then
+          # 500MB - 5GB
+          S3_CHUNK_SIZE="64M"
+          S3_UPLOAD_CONCURRENCY=8
+          MULTI_THREAD_STREAMS=4
+        else
+          # > 5GB
+          S3_CHUNK_SIZE="128M"
+          S3_UPLOAD_CONCURRENCY=16
+          MULTI_THREAD_STREAMS=8
+        fi
+        
+        echo "Optimized settings for file size:"
+        echo "  S3 chunk size: $S3_CHUNK_SIZE"
+        echo "  Upload concurrency: $S3_UPLOAD_CONCURRENCY"
+        echo "  Multi-thread streams: $MULTI_THREAD_STREAMS"
+        echo ""
+        
+        # Execute rclone upload
+        echo "Starting upload..."
+        rclone copy "$archive_file" pawsey0001:"$bucket/" \
+          --multi-thread-streams=$MULTI_THREAD_STREAMS \
+          --s3-chunk-size=$S3_CHUNK_SIZE \
+          --s3-upload-concurrency=$S3_UPLOAD_CONCURRENCY \
+          --progress
+        
+        echo "✓ Upload completed successfully"
+        echo "  [BUCKET]: $bucket"
+        echo "  [DESTINATION]: $archive_file"
+        echo "  [SIZE]: $(ls -lh "$archive_file" | awk '{print $5}')"
+
+  # PUSH-PRIV-job (old commented version):
   #   needs: [BUILD-job, PREPARE-job]
   #   runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
   #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
