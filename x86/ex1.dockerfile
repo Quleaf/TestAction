@@ -1,11 +1,11 @@
 # Use the official Alpine Linux as the base image
 #FROM alpine:latest
 FROM ubuntu:20.04
-LABEL org.opencontainers.image.arch=x86
-LABEL org.opencontainers.image.compilation=auto
+
+LABEL org.opencontainers.image.vesion=0.0.1
 LABEL org.opencontainers.image.devmode=true
 
-# # Install curl package
+# # Install curl packageW
 #RUN apk add --no-cache curl
 
 
