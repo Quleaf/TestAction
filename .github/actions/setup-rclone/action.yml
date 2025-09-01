@@ -51,6 +51,7 @@ runs:
           # rclone not installed locally or in cache
           echo "rclone not found locally or in cache"
           echo "installed=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Download rclone and populate cache (no sudo)
       if: steps.check_rclone.outputs.installed != 'true'
