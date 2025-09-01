@@ -332,16 +332,20 @@ jobs:
           # Extract filename without extension for tag
           dockerfile_name=$(basename "$dockerfile_path" .dockerfile)
           
-          # Build with podman using docker format and cache
+          # Prepare cache directories
+          mkdir -p "${CACHE_DIR}/apt"
+          mkdir -p "${CACHE_DIR}/apt-lists"
+          
+          # Build with podman using docker format and volume-based caching
           echo "Building container with podman..."
           echo "Dockerfile: $dockerfile_path"
           echo "Tag: ${dockerfile_name}:${version}"
           echo "Using cache: ${CACHE_DIR}"
           
-          # Build with cache mount for better layer caching
+          # Build with volume mounts for apt cache (persistent across builds)
           podman build --format=docker \
-            --cache-mount=type=local,mode=0755,target=/var/cache/apt,source="${CACHE_DIR}/apt" \
-            --cache-mount=type=local,mode=0755,target=/var/lib/apt/lists,source="${CACHE_DIR}/apt-lists" \
+            --volume "${CACHE_DIR}/apt:/var/cache/apt:Z" \
+            --volume "${CACHE_DIR}/apt-lists:/var/lib/apt/lists:Z" \
             --layers \
             -f "$dockerfile_path" \
             -t "${dockerfile_name}:${version}" \
@@ -355,6 +359,11 @@ jobs:
             if [ -d "${CACHE_DIR}" ]; then
               cache_size=$(du -sh "${CACHE_DIR}" 2>/dev/null | cut -f1 || echo "0")
               echo "[CACHE STATUS]: Updated cache size: $cache_size"
+              
+              # Show cache contents
+              apt_cache_files=$(find "${CACHE_DIR}/apt" -name "*.deb" 2>/dev/null | wc -l)
+              lists_files=$(find "${CACHE_DIR}/apt-lists" -type f 2>/dev/null | wc -l)
+              echo "[CACHE DETAILS]: APT packages cached: $apt_cache_files, Lists cached: $lists_files"
             fi
           else
             echo "✗ Failed to build image: ${dockerfile_name}:${version}"
