@@ -382,12 +382,12 @@ jobs:
           # Define output file
           output_file="${dockerfile_name}_${version}.tar"
           
-          echo "Saving container to OCI archive..."
+          echo "Saving container to Docker archive..."
           echo "Image: $image_tag"
           echo "Output: $output_file"
           
-          # Save with podman using OCI archive format
-          podman save --format oci-archive "$image_tag" -o "$output_file"
+          # Save with podman using Docker archive format (compatible with Trivy)
+          podman save --format docker-archive "$image_tag" -o "$output_file"
           
           # Verify the file was created
           if [ -f "$output_file" ]; then
