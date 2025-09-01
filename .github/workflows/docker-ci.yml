@@ -511,39 +511,39 @@ jobs:
     - name: Prepare report dir and template
       run: |
         mkdir -p "${REPORT_DIR}" .github
-        cat > .github/trivy-summary.tpl <<'TPL'
-## Trivy Scan Summary — {{ .ArtifactName }}
-
-**Ref:** `{{ .Ref }}`  •  **Scanned:** {{ .GeneratedAt }}
-
-**Severity counts**  
-- CRITICAL: **{{ .Summary.Critical }}**  
-- HIGH: **{{ .Summary.High }}**  
-- MEDIUM: {{ .Summary.Medium }}  
-- LOW: {{ .Summary.Low }}  
-- UNKNOWN: {{ .Summary.Unknown }}
-
-{{- if .Results }}
-### Top findings (CRITICAL/HIGH)
-| Severity | ID | Package | Version | Fixed | File |
-|---|---|---|---|---|---|
-{{- $n := 0 -}}
-{{- range .Results }}
-  {{- range .Vulnerabilities }}
-    {{- if or (eq .Severity "CRITICAL") (eq .Severity "HIGH") -}}
-      | {{ .Severity }} | {{ .VulnerabilityID }} | {{ .PkgName }} | {{ .InstalledVersion }} | {{ .FixedVersion }} | {{ .PrimaryURL }} |
-      {{- $n = add $n 1 -}}
-      {{- if ge $n 50 }}{{ break }}{{ end -}}
-    {{- end -}}
-  {{- end }}
-{{- end }}
-{{- if eq $n 0 }}
-_No CRITICAL/HIGH vulnerabilities found._
-{{- end }}
-{{- else }}
-_No results._
-{{- end }}
-TPL
+        cat > .github/trivy-summary.tpl <<'EOF'
+        ## Trivy Scan Summary — {{ .ArtifactName }}
+        
+        Target: {{ .ArtifactName }}  •  Scanned: {{ .GeneratedAt }}
+        
+        Severity counts:
+        - CRITICAL: {{ .Summary.Critical }}
+        - HIGH: {{ .Summary.High }}
+        - MEDIUM: {{ .Summary.Medium }}
+        - LOW: {{ .Summary.Low }}
+        - UNKNOWN: {{ .Summary.Unknown }}
+        
+        {{- if .Results }}
+        ### Top findings (CRITICAL/HIGH)
+        | Severity | ID | Package | Version | Fixed | URL |
+        |----------|-------|----------|----------|----------|---------|
+        {{- $n := 0 -}}
+        {{- range .Results }}
+          {{- range .Vulnerabilities }}
+            {{- if or (eq .Severity "CRITICAL") (eq .Severity "HIGH") -}}
+              | {{ .Severity }} | {{ .VulnerabilityID }} | {{ .PkgName }} | {{ .InstalledVersion }} | {{ .FixedVersion }} | {{ .PrimaryURL }} |
+              {{- $n = add $n 1 -}}
+              {{- if ge $n 50 }}{{ break }}{{ end -}}
+            {{- end -}}
+          {{- end }}
+        {{- end }}
+        {{- if eq $n 0 }}
+        _No CRITICAL/HIGH vulnerabilities found._
+        {{- end }}
+        {{- else }}
+        _No results._
+        {{- end }}
+        EOF
 
     # Generate Markdown summary for Actions Summary
     - name: Trivy (Markdown summary for Actions Summary)
