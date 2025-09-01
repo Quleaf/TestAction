@@ -332,20 +332,15 @@ jobs:
           # Extract filename without extension for tag
           dockerfile_name=$(basename "$dockerfile_path" .dockerfile)
           
-          # Prepare cache directories
-          mkdir -p "${CACHE_DIR}/apt"
-          mkdir -p "${CACHE_DIR}/apt-lists"
-          
-          # Build with podman using docker format and volume-based caching
           echo "Building container with podman..."
           echo "Dockerfile: $dockerfile_path"
           echo "Tag: ${dockerfile_name}:${version}"
-          echo "Using cache: ${CACHE_DIR}"
           
-          # Build with volume mounts for apt cache (persistent across builds)
+          # Build with layer caching enabled
+          # The --layers flag enables layer caching which is the most reliable method
+          echo "[CACHE STRATEGY]: Using podman layer caching (--layers)"
+          
           podman build --format=docker \
-            --volume "${CACHE_DIR}/apt:/var/cache/apt" \
-            --volume "${CACHE_DIR}/apt-lists:/var/lib/apt/lists" \
             --layers \
             -f "$dockerfile_path" \
             -t "${dockerfile_name}:${version}" \
@@ -355,16 +350,14 @@ jobs:
           if podman images | grep -q "${dockerfile_name}"; then
             echo "✓ Image built successfully: ${dockerfile_name}:${version}"
             
-            # Show cache usage after build
-            if [ -d "${CACHE_DIR}" ]; then
-              cache_size=$(du -sh "${CACHE_DIR}" 2>/dev/null | cut -f1 || echo "0")
-              echo "[CACHE STATUS]: Updated cache size: $cache_size"
-              
-              # Show cache contents
-              apt_cache_files=$(find "${CACHE_DIR}/apt" -name "*.deb" 2>/dev/null | wc -l)
-              lists_files=$(find "${CACHE_DIR}/apt-lists" -type f 2>/dev/null | wc -l)
-              echo "[CACHE DETAILS]: APT packages cached: $apt_cache_files, Lists cached: $lists_files"
-            fi
+            # Show caching information
+            echo "[LAYER CACHE]: Podman layer caching enabled"
+            echo "[OPTIMIZATION]: Subsequent builds will reuse unchanged layers"
+            echo "[NOTE]: APT cache within container is cleaned as per Dockerfile"
+            
+            # Show all images to see layer reuse
+            echo "[ALL IMAGES]:"
+            podman images | head -10
           else
             echo "✗ Failed to build image: ${dockerfile_name}:${version}"
             exit 1
