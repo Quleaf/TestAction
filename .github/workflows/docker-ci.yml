@@ -526,10 +526,20 @@ jobs:
       - name: Scan the Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
+          scan-type: 'image'
           input: './${{ steps.locate_archive.outputs.archive_filename }}'        
-          format: 'table'
+          format: 'github'
           output: './trivy-reports/trivy-report-${{ needs.BUILD-job.outputs.dockerfile_name }}.txt'
-          severity: 'MEDIUM,CRITICAL,HIGH'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          exit-code: '0'
+          hide-progress: false
+          timeout: '10m0s'
+          cache: true
+        env:
+          TRIVY_SKIP_DB_UPDATE: false
+          TRIVY_SKIP_JAVA_DB_UPDATE: false
       
       - name: Add Trivy report to GitHub Actions summary
         run: |
@@ -541,11 +551,36 @@ jobs:
           echo '' >> $GITHUB_STEP_SUMMARY
           cat ./trivy-reports/trivy-report-${{ needs.BUILD-job.outputs.dockerfile_name }}.txt >> $GITHUB_STEP_SUMMARY
 
-      - name: Upload Trivy scan report
-        uses: actions/upload-artifact@v4
+      - name: Generate SARIF report for GitHub Security
+        uses: aquasecurity/trivy-action@master
+        if: always()
         with:
-            name: trivy-report-${{ needs.BUILD-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.version }}
-            path: ${{ github.workspace }}/trivy-reports/trivy-report-${{ needs.BUILD-job.outputs.dockerfile_name }}.txt
+          scan-type: 'image'
+          input: './${{ steps.locate_archive.outputs.archive_filename }}'        
+          format: 'sarif'
+          output: './trivy-reports/trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          exit-code: '0'
+          hide-progress: true
+          cache: true
+        env:
+          TRIVY_SKIP_DB_UPDATE: true
+          TRIVY_SKIP_JAVA_DB_UPDATE: true
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: './trivy-reports/trivy-results.sarif'
+
+      - name: Upload Trivy scan reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+            name: trivy-reports-${{ needs.BUILD-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.version }}
+            path: ${{ github.workspace }}/trivy-reports/
             retention-days: 30
 
   # PUSH-PRIV-job:
