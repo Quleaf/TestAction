@@ -1,6 +1,7 @@
 # Use the official Alpine Linux as the base image
 #FROM alpine:latest
-FROM ubuntu:20.04
+#FROM ubuntu:20.04
+FROM ubuntu:16.04
 
 LABEL org.opencontainers.image.version=0.0.5
 LABEL org.opencontainers.image.devmode=true
