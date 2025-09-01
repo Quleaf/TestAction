@@ -11,6 +11,13 @@ jobs:
   PREPARE-job:
     runs-on: [self-hosted, Linux, X64, podman, test, setonix-podman02]
     outputs:
+      # Job Output Variables:
+      # - proceed_valid: Whether to proceed with build (true/false, e.g., "true")
+      # - dockerfile_path: Path to the modified Dockerfile (e.g., "x86/ex1.dockerfile")
+      # - version: Semver version from Dockerfile (e.g., "0.0.5")
+      # - devmode: Development mode flag (true/false, e.g., "true")
+      # - noscan: Skip security scan flag (true/false, e.g., "false")
+      # - files: List of changed files for debugging (e.g., "x86/ex1.dockerfile")
       proceed_valid: ${{ steps.set_proceed_flag.outputs.proceed_valid }}
       dockerfile_path: ${{ steps.set_proceed_flag.outputs.dockerfile_path }}
       version: ${{ steps.set_proceed_flag.outputs.version }}
@@ -249,6 +256,120 @@ jobs:
       - name: Print hostname
         run: |
           echo "Hostname: $(hostname)"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
+
+      - name: Setup container environment
+        id: setup_env
+        run: |
+          echo "Setting up container environment variables..."
+          
+          # Export environment variables
+          export XDG_DATA_HOME=/container/${USER}/data
+          export XDG_RUNTIME_DIR=/container/${USER}/runtime
+          export TMPDIR=/container/${USER}/tmp/
+          
+          # Create required directories
+          mkdir -p ${XDG_DATA_HOME}
+          mkdir -p ${XDG_RUNTIME_DIR}
+          mkdir -p ${TMPDIR}
+          
+          # Verify directories and output status
+          echo "Environment setup completed:"
+          echo "USER: ${USER}"
+          echo "XDG_DATA_HOME: ${XDG_DATA_HOME}"
+          echo "XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}"
+          echo "TMPDIR: ${TMPDIR}"
+          
+          # Check if directories exist
+          for dir in "${XDG_DATA_HOME}" "${XDG_RUNTIME_DIR}" "${TMPDIR}"; do
+            if [ -d "$dir" ]; then
+              echo "✓ Podman Directory exists: $dir"
+            else
+              echo "✗ Podman Directory missing: $dir"
+              exit 1
+            fi
+          done
+          
+          # Set environment variables for subsequent steps
+          echo "XDG_DATA_HOME=${XDG_DATA_HOME}" >> $GITHUB_ENV
+          echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}" >> $GITHUB_ENV
+          echo "TMPDIR=${TMPDIR}" >> $GITHUB_ENV
+
+      - name: Build container with podman
+        id: build_container
+        run: |
+          # Get variables from PREPARE-job
+          dockerfile_path="${{ needs.PREPARE-job.outputs.dockerfile_path }}"
+          version="${{ needs.PREPARE-job.outputs.version }}"
+          
+          # Extract filename without extension for tag
+          dockerfile_name=$(basename "$dockerfile_path" .dockerfile)
+          
+          # Build with podman using docker format
+          echo "Building container with podman..."
+          echo "Dockerfile: $dockerfile_path"
+          echo "Tag: ${dockerfile_name}:${version}"
+          
+          podman build --format=docker \
+            -f "$dockerfile_path" \
+            -t "${dockerfile_name}:${version}" \
+            $(dirname "$dockerfile_path")
+          
+          # Verify the image was built
+          if podman images | grep -q "${dockerfile_name}"; then
+            echo "✓ Image built successfully: ${dockerfile_name}:${version}"
+          else
+            echo "✗ Failed to build image: ${dockerfile_name}:${version}"
+            exit 1
+          fi
+          
+          # Set outputs for next step
+          # Output Variables:
+          # - image_tag: Complete image tag with version (e.g., "ex1:0.0.5")
+          # - dockerfile_name: Base name without extension (e.g., "ex1")
+          echo "image_tag=${dockerfile_name}:${version}" >> $GITHUB_OUTPUT
+          echo "dockerfile_name=${dockerfile_name}" >> $GITHUB_OUTPUT
+
+      - name: Save container to archive
+        id: save_container
+        run: |
+          # Get variables from previous step
+          image_tag="${{ steps.build_container.outputs.image_tag }}"
+          dockerfile_name="${{ steps.build_container.outputs.dockerfile_name }}"
+          version="${{ needs.PREPARE-job.outputs.version }}"
+          
+          # Define output file
+          output_file="${dockerfile_name}_${version}.tar"
+          
+          echo "Saving container to OCI archive..."
+          echo "Image: $image_tag"
+          echo "Output: $output_file"
+          
+          # Save with podman using OCI archive format
+          podman save --format oci-archive "$image_tag" -o "$output_file"
+          
+          # Verify the file was created
+          if [ -f "$output_file" ]; then
+            file_size=$(ls -lh "$output_file" | awk '{print $5}')
+            echo "✓ Archive saved successfully: $output_file (Size: $file_size)"
+          else
+            echo "✗ Failed to save archive: $output_file"
+            exit 1
+          fi
+          
+          # Set outputs
+          # Output Variables:
+          # - archive_file: Archive filename only (e.g., "ex1_0.0.5.tar")
+          # - archive_path: Full path to archive (e.g., "/home/runner/work/repo/ex1_0.0.5.tar")
+          # Usage in next steps: ${{ steps.save_container.outputs.archive_file }}
+          echo "archive_file=$output_file" >> $GITHUB_OUTPUT
+          echo "archive_path=${PWD}/$output_file" >> $GITHUB_OUTPUT
+
+
       
   # BUILD-job:
   #   needs: PREPARE-job
