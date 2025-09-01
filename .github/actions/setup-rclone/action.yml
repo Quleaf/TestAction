@@ -1,5 +1,5 @@
 name: 'Setup Rclone'
-description: 'Installs and configures rclone for S3 uploads/downloads.'
+description: 'Installs and configures rclone for S3 uploads/downloads without sudo, using $HOME/.cache/rclone for caching.'
 inputs:
   access_key_id:
     description: 'Access Key ID for S3'
@@ -23,30 +23,59 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Check if rclone is installed
+    - name: Prepare cache path env
+      id: envprep
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Define cache directory under $HOME/.cache/rclone
+        echo "RCLONE_CACHE_DIR=$HOME/.cache/rclone" >> $GITHUB_ENV
+        echo "RCLONE_CACHE_BIN=$HOME/.cache/rclone/rclone" >> $GITHUB_ENV
+
+    - name: Check if rclone is available locally or in cache
       id: check_rclone
       shell: bash
       run: |
-        if command -v rclone >/dev/null 2>&1; then
-          echo "rclone is already installed."
+        set -euo pipefail
+        if [ -x "./rclone" ]; then
+          # rclone binary already present in the current directory
+          echo "Found local ./rclone"
+          echo "installed=true" >> $GITHUB_OUTPUT
+        elif [ -x "${RCLONE_CACHE_BIN}" ]; then
+          # Found cached binary, copy it to current directory
+          echo "Found cached rclone at ${RCLONE_CACHE_BIN}; copying to ./rclone"
+          cp "${RCLONE_CACHE_BIN}" ./rclone
+          chmod +x ./rclone
           echo "installed=true" >> $GITHUB_OUTPUT
         else
-          echo "rclone is not installed."
+          # rclone not installed locally or in cache
+          echo "rclone not found locally or in cache"
           echo "installed=false" >> $GITHUB_OUTPUT
-        fi
 
-    - name: Install rclone
+    - name: Download rclone and populate cache (no sudo)
       if: steps.check_rclone.outputs.installed != 'true'
       shell: bash
       run: |
-        echo "Installing rclone..."
-        curl https://rclone.org/install.sh | sudo bash
+        set -euo pipefail
+        mkdir -p "${RCLONE_CACHE_DIR}"
+        echo "Downloading rclone..."
+        curl -sSL https://downloads.rclone.org/rclone-current-linux-amd64.zip -o rclone.zip
+        unzip -q rclone.zip
+        # Extracted directory has a dynamic name like rclone-*-linux-amd64
+        SRC_DIR="$(echo rclone-*-linux-amd64)"
+        mv "${SRC_DIR}/rclone" ./rclone
+        chmod +x ./rclone
+        # Save to cache for reuse in future runs
+        cp ./rclone "${RCLONE_CACHE_BIN}"
+        echo "rclone downloaded and cached at ${RCLONE_CACHE_BIN}"
 
-    - name: Configure rclone
+    - name: Configure rclone (local config)
       shell: bash
       run: |
-        mkdir -p ~/.config/rclone
-        tee ~/.config/rclone/rclone.conf > /dev/null <<EOF
+        set -euo pipefail
+        # Store configuration in project-local directory
+        mkdir -p ./.rclone_config
+        tee ./.rclone_config/rclone.conf > /dev/null <<EOF
         [pawsey0001]
         type = s3
         provider = Ceph
@@ -54,9 +83,12 @@ runs:
         access_key_id = ${{ inputs.access_key_id }}
         secret_access_key = ${{ inputs.secret_access_key }}
         EOF
+        # Export environment variable so ./rclone automatically picks up this config
+        echo "RCLONE_CONFIG=$(pwd)/.rclone_config/rclone.conf" >> $GITHUB_ENV
 
     - name: Verify rclone Configuration
       shell: bash
       run: |
+        set -euo pipefail
         echo "Verifying rclone configuration..."
-        rclone config show
+        ./rclone config show
