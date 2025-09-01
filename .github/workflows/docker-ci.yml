@@ -9,7 +9,7 @@ on:
         - 'cicd*'
 jobs:
   PREPARE-job:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, podman, test, setonix-podman02]
     outputs:
       proceed_valid: ${{ steps.set_proceed_flag.outputs.proceed_valid }}
       dockerfile_path: ${{ steps.set_proceed_flag.outputs.dockerfile_path }}
@@ -241,7 +241,14 @@ jobs:
           echo "Date tag: $date_tag"
           echo "date=$date_tag" >> $GITHUB_OUTPUT
       
-
+  BUILD-job:
+    needs: PREPARE-job
+    runs-on: setonix-podman02
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    steps:
+      - name: Print hostname
+        run: |
+          echo "Hostname: $(hostname)"
       
   # BUILD-job:
   #   needs: PREPARE-job
