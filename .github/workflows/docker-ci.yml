@@ -511,42 +511,44 @@ jobs:
     - name: Prepare report dir and template
       run: |
         mkdir -p "${REPORT_DIR}" .github
-        cat > .github/trivy-summary.tpl <<'EOF'
-## Trivy Scan Summary — {{ .ArtifactName }}
-
-**Target:** {{ .ArtifactName }}  
-**Scanned:** {{ .GeneratedAt }}
-
-### Severity Counts
-- **CRITICAL:** {{ .Summary.Critical }}
-- **HIGH:** {{ .Summary.High }}  
-- **MEDIUM:** {{ .Summary.Medium }}
-- **LOW:** {{ .Summary.Low }}
-- **UNKNOWN:** {{ .Summary.Unknown }}
-
-{{- if .Results }}
-### Critical & High Severity Vulnerabilities
-| Severity | CVE ID | Package | Installed | Fixed | 
-|----------|--------|---------|-----------|-------|
-{{- $n := 0 -}}
-{{- range .Results }}
-  {{- range .Vulnerabilities }}
-    {{- if or (eq .Severity "CRITICAL") (eq .Severity "HIGH") -}}
-| {{ .Severity }} | {{ .VulnerabilityID }} | {{ .PkgName }} | {{ .InstalledVersion }} | {{ .FixedVersion }} |
-      {{- $n = add $n 1 -}}
-      {{- if ge $n 20 }}{{ break }}{{ end -}}
-    {{- end -}}
-  {{- end }}
-{{- end }}
-{{- if eq $n 0 }}
-
-*No CRITICAL/HIGH vulnerabilities found.*
-{{- end }}
-{{- else }}
-
-*No scan results available.*
-{{- end }}
-EOF
+        
+        # Create template using printf to avoid YAML parsing issues
+        printf '%s\n' \
+          '## Trivy Scan Summary — {{ .ArtifactName }}' \
+          '' \
+          'Target: {{ .ArtifactName }}' \
+          'Scanned: {{ .GeneratedAt }}' \
+          '' \
+          '### Severity Counts' \
+          '- CRITICAL: {{ .Summary.Critical }}' \
+          '- HIGH: {{ .Summary.High }}' \
+          '- MEDIUM: {{ .Summary.Medium }}' \
+          '- LOW: {{ .Summary.Low }}' \
+          '- UNKNOWN: {{ .Summary.Unknown }}' \
+          '' \
+          '{{- if .Results }}' \
+          '### Critical & High Vulnerabilities' \
+          '| Severity | CVE ID | Package | Installed | Fixed |' \
+          '|----------|--------|---------|-----------|-------|' \
+          '{{- $n := 0 -}}' \
+          '{{- range .Results }}' \
+          '  {{- range .Vulnerabilities }}' \
+          '    {{- if or (eq .Severity "CRITICAL") (eq .Severity "HIGH") -}}' \
+          '| {{ .Severity }} | {{ .VulnerabilityID }} | {{ .PkgName }} | {{ .InstalledVersion }} | {{ .FixedVersion }} |' \
+          '      {{- $n = add $n 1 -}}' \
+          '      {{- if ge $n 20 }}{{ break }}{{ end -}}' \
+          '    {{- end -}}' \
+          '  {{- end }}' \
+          '{{- end }}' \
+          '{{- if eq $n 0 }}' \
+          '' \
+          'No CRITICAL/HIGH vulnerabilities found.' \
+          '{{- end }}' \
+          '{{- else }}' \
+          '' \
+          'No scan results available.' \
+          '{{- end }}' \
+          > .github/trivy-summary.tpl
 
     - name: Debug template and files
       run: |
