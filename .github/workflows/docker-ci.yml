@@ -299,6 +299,29 @@ jobs:
           echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}" >> $GITHUB_ENV
           echo "TMPDIR=${TMPDIR}" >> $GITHUB_ENV
 
+      - name: Setup podman cache
+        id: setup_cache
+        run: |
+          # Setup podman cache directory
+          CACHE_DIR="/container/${USER}/podman-cache"
+          mkdir -p "$CACHE_DIR"
+          
+          echo "[CACHE SETUP]:"
+          echo "  Cache directory: $CACHE_DIR"
+          
+          # Configure podman to use cache
+          export TMPDIR="${TMPDIR:-/tmp}"
+          
+          # Check cache size if exists
+          if [ -d "$CACHE_DIR" ]; then
+            cache_size=$(du -sh "$CACHE_DIR" 2>/dev/null | cut -f1 || echo "0")
+            echo "  Current cache size: $cache_size"
+          else
+            echo "  Cache directory created (empty)"
+          fi
+          
+          echo "CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
+
       - name: Build container with podman
         id: build_container
         run: |
@@ -309,12 +332,17 @@ jobs:
           # Extract filename without extension for tag
           dockerfile_name=$(basename "$dockerfile_path" .dockerfile)
           
-          # Build with podman using docker format
+          # Build with podman using docker format and cache
           echo "Building container with podman..."
           echo "Dockerfile: $dockerfile_path"
           echo "Tag: ${dockerfile_name}:${version}"
+          echo "Using cache: ${CACHE_DIR}"
           
+          # Build with cache mount for better layer caching
           podman build --format=docker \
+            --cache-mount=type=local,mode=0755,target=/var/cache/apt,source="${CACHE_DIR}/apt" \
+            --cache-mount=type=local,mode=0755,target=/var/lib/apt/lists,source="${CACHE_DIR}/apt-lists" \
+            --layers \
             -f "$dockerfile_path" \
             -t "${dockerfile_name}:${version}" \
             $(dirname "$dockerfile_path")
@@ -322,6 +350,12 @@ jobs:
           # Verify the image was built
           if podman images | grep -q "${dockerfile_name}"; then
             echo "✓ Image built successfully: ${dockerfile_name}:${version}"
+            
+            # Show cache usage after build
+            if [ -d "${CACHE_DIR}" ]; then
+              cache_size=$(du -sh "${CACHE_DIR}" 2>/dev/null | cut -f1 || echo "0")
+              echo "[CACHE STATUS]: Updated cache size: $cache_size"
+            fi
           else
             echo "✗ Failed to build image: ${dockerfile_name}:${version}"
             exit 1
