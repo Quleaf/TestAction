@@ -110,13 +110,26 @@ jobs:
           if [ -z "$files" ]; then
             echo "No Dockerfile changes detected. This workflow only processes Dockerfile modifications."
             echo "files=" >> $GITHUB_OUTPUT
+            echo "proceed_valid=false" >> $GITHUB_OUTPUT
             exit 0
           fi
           
-          echo "Files changed: $files"
+          # Count the number of changed files
+          file_count=$(echo "$files" | wc -l)
+          if [ "$file_count" -gt 1 ]; then
+            echo "Multiple Dockerfiles changed ($file_count files). This workflow only processes single file changes."
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            echo "$files" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "proceed_valid=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "Single Dockerfile changed: $files"
           echo "files<<EOF" >> $GITHUB_OUTPUT
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+          echo "proceed_valid=true" >> $GITHUB_OUTPUT
 
 
       - name: Debug output of changed files 
@@ -126,25 +139,10 @@ jobs:
 
       - name: Validate file changes
         id: validate_changes
+        if: steps.changed_files.outputs.proceed_valid == 'true'
         run: |
           changed_files="${{ steps.changed_files.outputs.files }}"
-          
-          if [ -z "$changed_files" ]; then
-            echo "No Dockerfile changes"
-            echo "valid=false" >> $GITHUB_OUTPUT
-            echo "message=No changes" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          file_count=$(echo "$changed_files" | wc -l)
-          if [ "$file_count" -gt 1 ]; then
-            echo "Multiple files changed: $file_count"
-            echo "valid=false" >> $GITHUB_OUTPUT
-            echo "message=Multiple files" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "Single file changed: $changed_files"
+          echo "Processing single file: $changed_files"
           echo "valid=true" >> $GITHUB_OUTPUT
           echo "dockerfile_path=$changed_files" >> $GITHUB_OUTPUT
 
@@ -206,23 +204,29 @@ jobs:
       - name: Set proceed flag
         id: set_proceed_flag
         run: |
+          files_proceed="${{ steps.changed_files.outputs.proceed_valid }}"
           changes_valid="${{ steps.validate_changes.outputs.valid }}"
           version_valid="${{ steps.validate_version.outputs.valid }}"
           
-          if [ "$changes_valid" = "true" ] && [ "$version_valid" = "true" ]; then
+          # If files check failed, exit early
+          if [ "$files_proceed" != "true" ]; then
+            echo "(FAILED) File change validation failed"
+            echo "proceed_valid=false" >> $GITHUB_OUTPUT
+            echo "devmode=false" >> $GITHUB_OUTPUT
+            echo "noscan=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Check version validation
+          if [ "$version_valid" = "true" ]; then
             echo "(PASSED) All validations passed"
             echo "proceed_valid=true" >> $GITHUB_OUTPUT
           else
-            if [ "$changes_valid" != "true" ]; then
-              echo "(FAILED) File validation: ${{ steps.validate_changes.outputs.message }}"
-            fi
-            if [ "$version_valid" != "true" ]; then
-              echo "(FAILED) Version validation: ${{ steps.validate_version.outputs.message }}"
-            fi
+            echo "(FAILED) Version validation: ${{ steps.validate_version.outputs.message }}"
             echo "proceed_valid=false" >> $GITHUB_OUTPUT
           fi
           
-          # Pass through outputs (with defaults for failed cases)
+          # Pass through outputs
           echo "dockerfile_path=${{ steps.validate_changes.outputs.dockerfile_path }}" >> $GITHUB_OUTPUT
           echo "version=${{ steps.validate_version.outputs.version }}" >> $GITHUB_OUTPUT
           echo "devmode=${{ steps.parse_settings.outputs.devmode || 'false' }}" >> $GITHUB_OUTPUT

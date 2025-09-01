@@ -2,7 +2,7 @@
 #FROM alpine:latest
 FROM ubuntu:20.04
 
-LABEL org.opencontainers.image.vesion=0.0.3
+LABEL org.opencontainers.image.vesion=0.0.4
 LABEL org.opencontainers.image.devmode=true
 
 # # Install curl packageW
