@@ -462,21 +462,18 @@ jobs:
           echo "latest_link=$latest_link" >> $GITHUB_OUTPUT
 
 
-      
-
-
-SCAN-AND-REPORT-job:
-  needs: [BUILD-job, PREPARE-job]
-  runs-on: setonix-podman02
-  if: needs.PREPARE-job.outputs.proceed_valid == 'true' && needs.PREPARE-job.outputs.noscan != 'true'
-  env:
-    DOCKERFILE_NAME: ${{ needs.BUILD-job.outputs.dockerfile_name }}
-    VERSION: ${{ needs.PREPARE-job.outputs.version }}
-    PERSISTENT_DIR: /container/${{ env.USER }}/artifacts
-    REPORT_DIR: ./trivy-reports
-  steps:
+  SCAN-AND-REPORT-job:
+    needs: [BUILD-job, PREPARE-job]
+    runs-on: setonix-podman02
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true' && needs.PREPARE-job.outputs.noscan != 'true'
+    env:
+      DOCKERFILE_NAME: ${{ needs.BUILD-job.outputs.dockerfile_name }}
+      VERSION: ${{ needs.PREPARE-job.outputs.version }}
+      REPORT_DIR: ./trivy-reports
+    steps:
     - name: Print host
-      run: echo "Hostname: $(hostname)"
+      run: |
+          echo "Hostname: $(hostname)"
 
     - name: Locate image archive (from persistent storage)
       id: locate
@@ -484,6 +481,7 @@ SCAN-AND-REPORT-job:
       run: |
         set -euo pipefail
         shopt -s nullglob
+        PERSISTENT_DIR="/container/${USER}/artifacts"
         echo "Searching archives in: ${PERSISTENT_DIR}"
 
         # 精准匹配 version，有则用；否则回退 latest
@@ -547,7 +545,7 @@ _No results._
 {{- end }}
 TPL
 
-    # ===== 人看得懂的 Markdown 摘要 =====
+    # Generate Markdown summary for Actions Summary
     - name: Trivy (Markdown summary for Actions Summary)
       uses: aquasecurity/trivy-action@v0.24.0
       with:
@@ -578,7 +576,7 @@ TPL
           cat "${REPORT_DIR}/summary.md"
         } >> "$GITHUB_STEP_SUMMARY"
 
-    # ===== 机器读的 SARIF 给 Security tab =====
+    # Generate SARIF report for GitHub Security
     - name: Trivy (SARIF for GitHub Security)
       uses: aquasecurity/trivy-action@v0.24.0
       if: always()
