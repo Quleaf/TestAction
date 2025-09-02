@@ -919,6 +919,12 @@ jobs:
         echo "[✓] Job completed successfully (no action required)"
         echo ""
 
+    - name: Prepare Docker config directory
+      if: needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true'
+      run: |
+        mkdir -p ~/.docker
+        echo "Created Docker config directory: ~/.docker"
+
     - name: Login to Docker Hub
       if: needs.PREPARE-job.outputs.dockerhub_available == 'true'
       uses: redhat-actions/podman-login@v1
