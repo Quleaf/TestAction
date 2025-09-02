@@ -18,6 +18,8 @@ jobs:
       # - devmode: Development mode flag (true/false, e.g., "true")
       # - noscan: Skip security scan flag (true/false, e.g., "false")
       # - files: List of changed files for debugging (e.g., "x86/ex1.dockerfile")
+      # - dockerhub_available: Whether Docker Hub credentials are available (true/false)
+      # - quayio_available: Whether Quay.io credentials are available (true/false)
       proceed_valid: ${{ steps.set_proceed_flag.outputs.proceed_valid }}
       dockerfile_path: ${{ steps.set_proceed_flag.outputs.dockerfile_path }}
       version: ${{ steps.set_proceed_flag.outputs.version }}
@@ -25,6 +27,8 @@ jobs:
       noscan: ${{ steps.set_proceed_flag.outputs.noscan }}
       files: ${{ steps.changed_files.outputs.files }}
       date: ${{ steps.date.outputs.date }}
+      dockerhub_available: ${{ steps.check_vars_secrets.outputs.dockerhub_available }}
+      quayio_available: ${{ steps.check_vars_secrets.outputs.quayio_available }}
     
     steps:
       - name: Set default runner label
@@ -32,59 +36,62 @@ jobs:
         run: |
           echo "runner_label=ubuntu-latest" >> $GITHUB_OUTPUT
 
-      # - name: Check required variables and secrets and set runner-default
-      #   id: check_vars_secrets
-      #   run: |
-      #     missing_vars=()
-      #     missing_secrets=()
+      - name: Check required variables and secrets
+        id: check_vars_secrets
+        run: |
+          missing_vars=()
+          missing_secrets=()
 
-      #     # check Variables
-      #     if [ -z "${{ vars.DOCKERHUB_USERNAME }}" ]; then
-      #       missing_vars+=("DOCKERHUB_USERNAME")
-      #     fi
+          # check Variables
+          if [ -z "${{ vars.DOCKERHUB_USERNAME }}" ]; then
+            missing_vars+=("DOCKERHUB_USERNAME")
+          fi
 
-      #     if [ -z "${{ vars.QUAYIO_USERNAME }}" ]; then
-      #       missing_vars+=("QUAYIO_USERNAME")
-      #     fi
+          if [ -z "${{ vars.QUAYIO_USERNAME }}" ]; then
+            missing_vars+=("QUAYIO_USERNAME")
+          fi
 
-      #     if [ -z "${{ vars.ACACIA_BUCKETNAME }}" ]; then
-      #       missing_vars+=("ACACIA_BUCKETNAME")
-      #     fi
+          if [ -z "${{ vars.ACACIA_BUCKETNAME }}" ]; then
+            missing_vars+=("ACACIA_BUCKETNAME")
+          fi
 
-      #     # check Secrets
-      #     if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
-      #       missing_secrets+=("PAT_TOKEN")
-      #     fi
+          # check Secrets
+          if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
+            missing_secrets+=("PAT_TOKEN")
+          fi
 
-      #     if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
-      #       missing_secrets+=("DOCKERHUB_TOKEN")
-      #     fi
+          if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            missing_secrets+=("DOCKERHUB_TOKEN")
+          fi
 
-      #     if [ -z "${{ secrets.QUAYIO_TOKEN }}" ]; then
-      #       missing_secrets+=("QUAYIO_TOKEN")
-      #     fi
+          if [ -z "${{ secrets.QUAYIO_TOKEN }}" ]; then
+            missing_secrets+=("QUAYIO_TOKEN")
+          fi
 
-      #     if [ -z "${{ secrets.ACACIA_ACCESS_KEY_ID }}" ]; then
-      #       missing_secrets+=("ACACIA_ACCESS_KEY_ID")
-      #     fi
+          if [ -z "${{ secrets.ACACIA_ACCESS_KEY_ID }}" ]; then
+            missing_secrets+=("ACACIA_ACCESS_KEY_ID")
+          fi
 
-      #     if [ -z "${{ secrets.ACACIA_SECRET_ACCESS_KEY }}" ]; then
-      #       missing_secrets+=("ACACIA_SECRET_ACCESS_KEY")
-      #     fi
+          if [ -z "${{ secrets.ACACIA_SECRET_ACCESS_KEY }}" ]; then
+            missing_secrets+=("ACACIA_SECRET_ACCESS_KEY")
+          fi
 
-      #     # If any missing variables or secrets, exit with error
-      #     if [ ${#missing_vars[@]} -ne 0 ] || [ ${#missing_secrets[@]} -ne 0 ]; then
-      #       echo "Some required variables or secrets are not set:"
-      #       if [ ${#missing_vars[@]} -ne 0 ]; then
-      #         echo "Missing Variables: ${missing_vars[@]}"
-      #       fi
-      #       if [ ${#missing_secrets[@]} -ne 0 ]; then
-      #         echo "Missing Secrets: ${missing_secrets[@]}"
-      #       fi
-      #       exit 1
-      #     else
-      #       echo "All required variables and secrets are set."
-      #     fi
+          # Log status of variables and secrets
+          if [ ${#missing_vars[@]} -ne 0 ]; then
+            echo "Missing Variables: ${missing_vars[@]}"
+          else
+            echo "All required variables are set."
+          fi
+          
+          if [ ${#missing_secrets[@]} -ne 0 ]; then
+            echo "Missing Secrets: ${missing_secrets[@]}"
+          else
+            echo "All required secrets are set."
+          fi
+          
+          # Set output flags for conditional job execution
+          echo "dockerhub_available=$( [ -n "${{ vars.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
+          echo "quayio_available=$( [ -n "${{ vars.QUAYIO_USERNAME }}" ] && [ -n "${{ secrets.QUAYIO_TOKEN }}" ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -808,97 +815,180 @@ jobs:
         echo "  [DESTINATION]: $archive_file"
         echo "  [SIZE]: $(ls -lh "$archive_file" | awk '{print $5}')"
 
-  # PUSH-PRIV-job (old commented version):
-  #   needs: [BUILD-job, PREPARE-job]
-  #   runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
-  #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-  #   env:
-  #    BUCKET: ${{ vars.ACACIA_BUCKETNAME }} # BYO or pawsey0001-image-compilation if compile for project
-  #    DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/${{ needs.PREPARE-job.outputs.date }}
-  #   steps:
-  #     - name: Print hostname and set approved label for deployment
-  #       id: set_approved_label
-  #       run: |
-  #         echo "Hostname: $(hostname)"
-
-  #     - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory in case of running before scan
-  #       run: |
-  #         if [ -f "$HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar" ]; then
-  #           echo "File already exists, skipping copy."
-  #         else
-  #           cp $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
-  #           echo "Copied image.tar from $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
-  #         fi
-
-  #     - name: Setup rclone
-  #       uses: ./.github/actions/setup-rclone
-  #       with:
-  #         access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
-  #         secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
-  #         endpoint: https://projects.pawsey.org.au
-  #         bucket: ${{ env.BUCKET }}
-  #         destination_path: ${{ env.DESTINATION_PATH }}
-
-  #     - name: Upload image tar to S3 with rclone
-  #       run: |
-  #         set -e
-      
-  #         # calculate file size
-  #         FILE_SIZE=$(wc -c < "${{ github.workspace }}/image.tar")
-  #         echo "File size: $FILE_SIZE bytes"
-      
-  #         # dynamically set rclone parameters based on file size: 500MB, 5G,others
-  #         if [ "$FILE_SIZE" -lt $((1024 * 1024 * 500)) ]; then
-  #           S3_CHUNK_SIZE="16M"
-  #           S3_UPLOAD_CONCURRENCY=4
-  #           MULTI_THREAD_STREAMS=2
-  #         elif [ "$FILE_SIZE" -lt $((1024 * 1024 * 5000)) ]; then
-  #           S3_CHUNK_SIZE="64M"
-  #           S3_UPLOAD_CONCURRENCY=8
-  #           MULTI_THREAD_STREAMS=4
-  #         else
-  #           S3_CHUNK_SIZE="128M"
-  #           S3_UPLOAD_CONCURRENCY=16
-  #           MULTI_THREAD_STREAMS=8
-  #         fi
-    
-      
-  #         echo "Using S3 chunk size: $S3_CHUNK_SIZE"
-  #         echo "Using S3 upload concurrency: $S3_UPLOAD_CONCURRENCY"
-  #         echo "Using multi-thread streams: $MULTI_THREAD_STREAMS"
-
-      
-  #         # execute rclone copy
-  #         rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/" \
-  #           --multi-thread-streams=$MULTI_THREAD_STREAMS \
-  #           --s3-chunk-size=$S3_CHUNK_SIZE \
-  #           --s3-upload-concurrency=$S3_UPLOAD_CONCURRENCY
-
-  #     - name: Login to Docker Hub       
-  #       uses: docker/login-action@v3
-  #       with:
-  #         username: ${{ vars.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
-  #     - name: Load Docker image from image.tar
-  #       run: |
-  #           docker load -i ${GITHUB_WORKSPACE}/image.tar
-
-  #     - name: Tag Docker image for Dockerhub and Quay.IO
-  #       run: |
-  #         docker tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
-  #     - name: Push Docker image to Dockerhub after approval
-  #       run: |          
-  #         docker push ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
-  #     - name: Remove Docker images
-  #       run: |
-  #         # Remove the main image
-  #         docker rmi ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
+  PUSH-PUBLIC-job:
+    needs: [BUILD-job, PREPARE-job, PUSH-PRIV-job]
+    runs-on: setonix-podman02
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true'
+    environment:
+      name: manual_approval
+    env:
+      DOCKERFILE_NAME: ${{ needs.BUILD-job.outputs.dockerfile_name }}
+      VERSION: ${{ needs.PREPARE-job.outputs.version }}
+      PERSISTENT_DIR: /container/${{ github.actor }}/artifacts
+    steps:
+    - name: Print hostname and check registry credentials
+      run: |
+        echo "Hostname: $(hostname)"
+        echo ""
+        echo "=== Public Registry Push Status ==="
         
-  #           # Remove tagged images
-  #         docker rmi ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
+        # Check Docker Hub credentials
+        if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" = "true" ]; then
+          echo "[✓] Docker Hub: Credentials available - will push to ${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+        else
+          echo "[skip]  Docker Hub: Skipping (missing DOCKERHUB_USERNAME or DOCKERHUB_TOKEN)"
+        fi
+        
+        # Check Quay.io credentials  
+        if [ "${{ needs.PREPARE-job.outputs.quayio_available }}" = "true" ]; then
+          echo "[✓] Quay.io: Credentials available - will push to quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+        else
+          echo "[skip]  Quay.io: Skipping (missing QUAYIO_USERNAME or QUAYIO_TOKEN)"
+        fi
+        
+        # Check if any registry is available
+        if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" != "true" ] && [ "${{ needs.PREPARE-job.outputs.quayio_available }}" != "true" ]; then
+          echo ""
+          echo "[WARNING]  No public registry credentials found. This job will complete without pushing to any public registry."
+          echo "   To enable public registry pushes, configure the required variables and secrets:"
+          echo "   - Docker Hub: DOCKERHUB_USERNAME (variable) + DOCKERHUB_TOKEN (secret)"
+          echo "   - Quay.io: QUAYIO_USERNAME (variable) + QUAYIO_TOKEN (secret)"
+        fi
+        echo ""
+
+    - name: Locate and load image from persistent storage
+      id: locate_and_load
+      if: needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true'
+      run: |
+        # Find the archive file (version-specific or latest)
+        PERSISTENT_DIR="/container/${USER}/artifacts"
+        echo "Searching for archive in: $PERSISTENT_DIR"
+        
+        # Find exact version match first, then fallback to latest
+        archive_file=""
+        if ls "${PERSISTENT_DIR}/${DOCKERFILE_NAME}_${VERSION}_"*.tar 1> /dev/null 2>&1; then
+          archive_file=$(ls -t "${PERSISTENT_DIR}/${DOCKERFILE_NAME}_${VERSION}_"*.tar | head -1)
+        elif [ -f "${PERSISTENT_DIR}/${DOCKERFILE_NAME}_latest.tar" ]; then
+          archive_file="${PERSISTENT_DIR}/${DOCKERFILE_NAME}_latest.tar"
+        fi
+        
+        if [ -z "$archive_file" ]; then
+          echo "✗ Archive not found in persistent storage"
+          echo "  Searched for: ${DOCKERFILE_NAME}_${VERSION}_*.tar"
+          echo "  Also searched for: ${DOCKERFILE_NAME}_latest.tar"
+          ls -la "$PERSISTENT_DIR" || echo "  Directory not accessible"
+          exit 1
+        fi
+        
+        # Load image into podman
+        echo "✓ Loading image from archive: $archive_file"
+        podman load -i "$archive_file"
+        
+        # Verify image was loaded
+        if podman images | grep -q "${DOCKERFILE_NAME}"; then
+          echo "✓ Image loaded successfully: ${DOCKERFILE_NAME}:${VERSION}"
+          podman images | grep "${DOCKERFILE_NAME}"
+        else
+          echo "✗ Failed to load image: ${DOCKERFILE_NAME}:${VERSION}"
+          exit 1
+        fi
+        
+        echo "archive_source=$archive_file" >> $GITHUB_OUTPUT
+        echo "image_tag=${DOCKERFILE_NAME}:${VERSION}" >> $GITHUB_OUTPUT
+
+    - name: Skip message when no credentials available
+      if: needs.PREPARE-job.outputs.dockerhub_available != 'true' && needs.PREPARE-job.outputs.quayio_available != 'true'
+      run: |
+        echo ""
+        echo "=========================================="
+        echo " Public Registry Push: SKIPPED"
+        echo "=========================================="
+        echo ""
+        echo "No public registry credentials were found."
+        echo "The workflow will complete successfully without pushing to public registries."
+        echo ""
+        echo "This is normal behavior when:"
+        echo "• You only want to use private storage (S3)"
+        echo "• Credentials are not yet configured"
+        echo "• Testing the build pipeline"
+        echo ""
+        echo "To enable public registry pushes in the future, configure:"
+        echo "• Docker Hub: Set DOCKERHUB_USERNAME (repo variable) and DOCKERHUB_TOKEN (repo secret)"
+        echo "• Quay.io: Set QUAYIO_USERNAME (repo variable) and QUAYIO_TOKEN (repo secret)"
+        echo ""
+        echo "[✓] Job completed successfully (no action required)"
+        echo ""
+
+    - name: Login to Docker Hub
+      if: needs.PREPARE-job.outputs.dockerhub_available == 'true'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ vars.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Tag and push to Docker Hub
+      if: needs.PREPARE-job.outputs.dockerhub_available == 'true'
+      run: |
+        image_tag="${{ steps.locate_and_load.outputs.image_tag }}"
+        dockerhub_tag="${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+        
+        echo "Tagging image for Docker Hub:"
+        echo "  Source: $image_tag"
+        echo "  Target: $dockerhub_tag"
+        
+        podman tag "$image_tag" "$dockerhub_tag"
+        
+        echo "Pushing to Docker Hub..."
+        podman push "$dockerhub_tag"
+        
+        echo "✓ Successfully pushed to Docker Hub: $dockerhub_tag"
+
+    - name: Login to Quay.io
+      if: needs.PREPARE-job.outputs.quayio_available == 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: quay.io
+        username: ${{ vars.QUAYIO_USERNAME }}
+        password: ${{ secrets.QUAYIO_TOKEN }}
+
+    - name: Tag and push to Quay.io
+      if: needs.PREPARE-job.outputs.quayio_available == 'true'
+      run: |
+        image_tag="${{ steps.locate_and_load.outputs.image_tag }}"
+        quayio_tag="quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+        
+        echo "Tagging image for Quay.io:"
+        echo "  Source: $image_tag"
+        echo "  Target: $quayio_tag"
+        
+        podman tag "$image_tag" "$quayio_tag"
+        
+        echo "Pushing to Quay.io..."
+        podman push "$quayio_tag"
+        
+        echo "✓ Successfully pushed to Quay.io: $quayio_tag"
+
+    - name: Cleanup local images
+      if: always() && (needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true')
+      run: |
+        image_tag="${{ steps.locate_and_load.outputs.image_tag }}"
+        
+        # Remove original image
+        podman rmi "$image_tag" || true
+        
+        # Remove Docker Hub tagged image if it was created
+        if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" = "true" ]; then
+          podman rmi "${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}" || true
+        fi
+        
+        # Remove Quay.io tagged image if it was created
+        if [ "${{ needs.PREPARE-job.outputs.quayio_available }}" = "true" ]; then
+          podman rmi "quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}" || true
+        fi
+        
+        echo "✓ Local images cleaned up"
+
+
 
 
   # CLEANUP-job:
