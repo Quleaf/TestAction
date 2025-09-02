@@ -925,75 +925,123 @@ jobs:
         mkdir -p ~/.docker
         echo "Created Docker config directory: ~/.docker"
 
-    - name: Login to Docker Hub
+    # ============================================
+    # Docker Hub Push (Independent Operation)
+    # ============================================
+    - name: "[Docker Hub] Login and Push"
       if: needs.PREPARE-job.outputs.dockerhub_available == 'true'
-      uses: redhat-actions/podman-login@v1
-      with:
-        registry: docker.io
-        username: ${{ vars.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-    - name: Tag and push to Docker Hub
-      if: needs.PREPARE-job.outputs.dockerhub_available == 'true'
+      continue-on-error: true
       run: |
+        set +e  # Don't exit on errors to allow independent execution
+        echo "=========================================="
+        echo " Docker Hub Push Process"
+        echo "=========================================="
+        
+        # Login to Docker Hub
+        echo "🔐 Logging into Docker Hub..."
+        if podman login docker.io -u "${{ vars.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOKEN }}"; then
+          echo "✓ Docker Hub login successful"
+        else
+          echo "✗ Docker Hub login failed"
+          exit 1
+        fi
+        
+        # Tag and push
         image_tag="${{ steps.locate_and_load.outputs.image_tag }}"
         dockerhub_tag="${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
         
-        echo "Tagging image for Docker Hub:"
-        echo "  Source: $image_tag"
-        echo "  Target: $dockerhub_tag"
+        echo ""
+        echo "🏷️  Tagging image for Docker Hub:"
+        echo "   Source: $image_tag"
+        echo "   Target: $dockerhub_tag"
         
-        podman tag "$image_tag" "$dockerhub_tag"
+        if podman tag "$image_tag" "$dockerhub_tag"; then
+          echo "✓ Image tagged successfully"
+        else
+          echo "✗ Image tagging failed"
+          exit 1
+        fi
         
-        echo "Pushing to Docker Hub..."
-        podman push "$dockerhub_tag"
-        
-        echo "✓ Successfully pushed to Docker Hub: $dockerhub_tag"
+        echo ""
+        echo "📤 Pushing to Docker Hub..."
+        if podman push "$dockerhub_tag"; then
+          echo "✅ Successfully pushed to Docker Hub: $dockerhub_tag"
+        else
+          echo "❌ Failed to push to Docker Hub"
+          exit 1
+        fi
 
-    - name: Login to Quay.io
+    # ============================================
+    # Quay.io Push (Independent Operation)
+    # ============================================
+    - name: "[Quay.io] Login and Push"
       if: needs.PREPARE-job.outputs.quayio_available == 'true'
-      uses: redhat-actions/podman-login@v1
-      with:
-        registry: quay.io
-        username: ${{ vars.QUAYIO_USERNAME }}
-        password: ${{ secrets.QUAYIO_TOKEN }}
-
-    - name: Tag and push to Quay.io
-      if: needs.PREPARE-job.outputs.quayio_available == 'true'
+      continue-on-error: true
       run: |
+        set +e  # Don't exit on errors to allow independent execution
+        echo "=========================================="
+        echo " Quay.io Push Process"
+        echo "=========================================="
+        
+        # Login to Quay.io
+        echo "🔐 Logging into Quay.io..."
+        if podman login quay.io -u "${{ vars.QUAYIO_USERNAME }}" -p "${{ secrets.QUAYIO_TOKEN }}"; then
+          echo "✓ Quay.io login successful"
+        else
+          echo "✗ Quay.io login failed"
+          exit 1
+        fi
+        
+        # Tag and push
         image_tag="${{ steps.locate_and_load.outputs.image_tag }}"
         quayio_tag="quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
         
-        echo "Tagging image for Quay.io:"
-        echo "  Source: $image_tag"
-        echo "  Target: $quayio_tag"
+        echo ""
+        echo "🏷️  Tagging image for Quay.io:"
+        echo "   Source: $image_tag"
+        echo "   Target: $quayio_tag"
         
-        podman tag "$image_tag" "$quayio_tag"
+        if podman tag "$image_tag" "$quayio_tag"; then
+          echo "✓ Image tagged successfully"
+        else
+          echo "✗ Image tagging failed"
+          exit 1
+        fi
         
-        echo "Pushing to Quay.io..."
-        podman push "$quayio_tag"
-        
-        echo "✓ Successfully pushed to Quay.io: $quayio_tag"
+        echo ""
+        echo "📤 Pushing to Quay.io..."
+        if podman push "$quayio_tag"; then
+          echo "✅ Successfully pushed to Quay.io: $quayio_tag"
+        else
+          echo "❌ Failed to push to Quay.io"
+          exit 1
+        fi
 
     - name: Cleanup local images
       if: always() && (needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true')
       run: |
+        echo "🧹 Cleaning up local images..."
         image_tag="${{ steps.locate_and_load.outputs.image_tag }}"
         
         # Remove original image
-        podman rmi "$image_tag" || true
+        echo "Removing base image: $image_tag"
+        podman rmi "$image_tag" 2>/dev/null || echo "  (Base image already removed or not found)"
         
         # Remove Docker Hub tagged image if it was created
         if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" = "true" ]; then
-          podman rmi "${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}" || true
+          dockerhub_tag="${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+          echo "Removing Docker Hub tag: $dockerhub_tag"
+          podman rmi "$dockerhub_tag" 2>/dev/null || echo "  (Docker Hub tag already removed or not found)"
         fi
         
         # Remove Quay.io tagged image if it was created
         if [ "${{ needs.PREPARE-job.outputs.quayio_available }}" = "true" ]; then
-          podman rmi "quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}" || true
+          quayio_tag="quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+          echo "Removing Quay.io tag: $quayio_tag"
+          podman rmi "$quayio_tag" 2>/dev/null || echo "  (Quay.io tag already removed or not found)"
         fi
         
-        echo "✓ Local images cleaned up"
+        echo "✅ Local image cleanup completed"
 
 
 
