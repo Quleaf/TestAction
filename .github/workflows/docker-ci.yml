@@ -99,9 +99,35 @@ jobs:
           fi
           
           # Set output flags for conditional job execution
-          echo "dockerhub_available=$( [ -n "${{ vars.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
-          echo "quayio_available=$( [ -n "${{ vars.QUAYIO_USERNAME }}" ] && [ -n "${{ secrets.QUAYIO_TOKEN }}" ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
-          echo "setonixreg_available=$( [ -n "${{ vars.SETONIXREG_USERNAME }}" ] && [ -n "${{ secrets.SETONIXREG_PASS }}" ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
+          dockerhub_available=$( [ -n "${{ vars.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && echo 'true' || echo 'false' )
+          quayio_available=$( [ -n "${{ vars.QUAYIO_USERNAME }}" ] && [ -n "${{ secrets.QUAYIO_TOKEN }}" ] && echo 'true' || echo 'false' )
+          setonixreg_available=$( [ -n "${{ vars.SETONIXREG_USERNAME }}" ] && [ -n "${{ secrets.SETONIXREG_PASS }}" ] && echo 'true' || echo 'false' )
+          
+          echo "dockerhub_available=$dockerhub_available" >> $GITHUB_OUTPUT
+          echo "quayio_available=$quayio_available" >> $GITHUB_OUTPUT
+          echo "setonixreg_available=$setonixreg_available" >> $GITHUB_OUTPUT
+          
+          # Log registry availability status
+          echo ""
+          echo "=== Registry Credentials Check ==="
+          if [ "$dockerhub_available" = "true" ]; then
+            echo "[✓] Docker Hub: Credentials available"
+          else
+            echo "[✗] Docker Hub: Missing credentials (DOCKERHUB_USERNAME or DOCKERHUB_TOKEN)"
+          fi
+          
+          if [ "$quayio_available" = "true" ]; then
+            echo "[✓] Quay.io: Credentials available"
+          else
+            echo "[✗] Quay.io: Missing credentials (QUAYIO_USERNAME or QUAYIO_TOKEN)"
+          fi
+          
+          if [ "$setonixreg_available" = "true" ]; then
+            echo "[✓] Setonix Registry: Credentials available"
+          else
+            echo "[✗] Setonix Registry: Missing credentials (SETONIXREG_USERNAME or SETONIXREG_PASS)"
+          fi
+          echo "==================================="
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -895,41 +921,40 @@ jobs:
       VERSION: ${{ needs.PREPARE-job.outputs.version }}
       PERSISTENT_DIR: /container/${{ github.actor }}/artifacts
     steps:
-    - name: Print hostname and check registry credentials
+    - name: Print hostname and registry push plan
       run: |
         echo "Hostname: $(hostname)"
         echo ""
-        echo "=== Public Registry Push Status ==="
+        echo "=== Public Registry Push Plan ==="
+        echo "Registry credentials were checked in PREPARE-job:"
+        echo ""
         
-        # Check Docker Hub credentials
+        # Show Docker Hub push plan
         if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" = "true" ]; then
-          echo "[✓] Docker Hub: Credentials available - will push to ${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+          echo "[✓] Docker Hub: Will push to ${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
         else
-          echo "[skip]  Docker Hub: Skipping (missing DOCKERHUB_USERNAME or DOCKERHUB_TOKEN)"
+          echo "[skip] Docker Hub: Skipping (credentials not available)"
         fi
         
-        # Check Quay.io credentials  
+        # Show Quay.io push plan  
         if [ "${{ needs.PREPARE-job.outputs.quayio_available }}" = "true" ]; then
-          echo "[✓] Quay.io: Credentials available - will push to quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+          echo "[✓] Quay.io: Will push to quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
         else
-          echo "[skip]  Quay.io: Skipping (missing QUAYIO_USERNAME or QUAYIO_TOKEN)"
+          echo "[skip] Quay.io: Skipping (credentials not available)"
         fi
         
-        # Check Setonix Registry credentials  
+        # Show Setonix Registry status (already pushed in PUSH-PRIV-job)
         if [ "${{ needs.PREPARE-job.outputs.setonixreg_available }}" = "true" ]; then
-          echo "[✓] Setonix Registry: Credentials available - already pushed to setonix-registry.pawsey.org.au/${{ vars.SETONIXREG_USERNAME }}/${DOCKERFILE_NAME}:${VERSION} in PUSH-PRIV-job"
+          echo "[✓] Setonix Registry: Already pushed in PUSH-PRIV-job"
         else
-          echo "[skip]  Setonix Registry: Skipping (missing SETONIXREG_USERNAME or SETONIXREG_PASS)"
+          echo "[skip] Setonix Registry: Skipped in PUSH-PRIV-job (credentials not available)"
         fi
         
-        # Check if any registry is available
+        # Check if any public registry is available
         if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" != "true" ] && [ "${{ needs.PREPARE-job.outputs.quayio_available }}" != "true" ]; then
           echo ""
-          echo "[WARNING]  No public registry credentials found. This job will complete without pushing to any public registry."
-          echo "   To enable public registry pushes, configure the required variables and secrets:"
-          echo "   - Docker Hub: DOCKERHUB_USERNAME (variable) + DOCKERHUB_TOKEN (secret)"
-          echo "   - Quay.io: QUAYIO_USERNAME (variable) + QUAYIO_TOKEN (secret)"
-          echo "   - Setonix Registry: SETONIXREG_USERNAME (variable) + SETONIXREG_PASS (secret)"
+          echo "[INFO] No public registry pushes will be performed in this job."
+          echo "Note: Setonix Registry push (if configured) is handled in PUSH-PRIV-job."
         fi
         echo ""
 
