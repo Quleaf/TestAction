@@ -105,6 +105,8 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        # Load rclone module
+        module load rclone/1.68.1
         # Store configuration in project-local directory
         mkdir -p ./.rclone_config
         tee ./.rclone_config/rclone.conf > /dev/null <<EOF
@@ -115,13 +117,15 @@ runs:
         access_key_id = ${{ inputs.access_key_id }}
         secret_access_key = ${{ inputs.secret_access_key }}
         EOF
-        # Export environment variable so ./rclone automatically picks up this config
+        # Export environment variable so rclone automatically picks up this config
         echo "RCLONE_CONFIG=$(pwd)/.rclone_config/rclone.conf" >> $GITHUB_ENV
 
     - name: Verify rclone Configuration
       shell: bash
       run: |
         set -euo pipefail
+        # Load rclone module
+        module load rclone/1.68.1
         echo "Verifying rclone configuration..."
         rclone config show
 
@@ -131,6 +135,8 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        # Load rclone module
+        module load rclone/1.68.1
         
         # Validate required inputs for download mode
         if [ -z "${{ inputs.dockerfile_name }}" ] || [ -z "${{ inputs.version }}" ]; then
@@ -199,6 +205,8 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        # Load rclone module
+        module load rclone/1.68.1
         
         # Validate required inputs for upload mode
         if [ -z "${{ inputs.upload_file }}" ]; then
