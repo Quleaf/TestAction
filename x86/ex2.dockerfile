@@ -1,6 +1,6 @@
 # use node:10
 FROM debian:stretch
-LABEL org.opencontainers.image.version=0.0.7
+LABEL org.opencontainers.image.version=0.0.8
 LABEL org.opencontainers.image.devmode=true
 
 # install some common tools (these packages have many vulnerabilities in node:10)
