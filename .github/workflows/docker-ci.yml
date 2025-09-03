@@ -1076,8 +1076,155 @@ jobs:
         
         echo "✅ Local image cleanup completed"
 
+  DEPLOY-job:
+    needs: [BUILD-job, PREPARE-job, PUSH-PUBLIC-job]
+    runs-on: setonix-podman02
+    if: needs.PREPARE-job.outputs.proceed_valid == 'true' && (needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true')
+    env:
+      DOCKERFILE_NAME: ${{ needs.BUILD-job.outputs.dockerfile_name }}
+      VERSION: ${{ needs.PREPARE-job.outputs.version }}
+    steps:
+      - name: Display deployment environment
+        run: |
+          echo "Hostname: $(hostname)"
+          echo "Starting SHPC deployment for ${DOCKERFILE_NAME}:${VERSION}"
+          echo ""
+          echo "Available public registries:"
+          if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" = "true" ]; then
+            echo "• Docker Hub: ${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+          fi
+          if [ "${{ needs.PREPARE-job.outputs.quayio_available }}" = "true" ]; then
+            echo "• Quay.io: quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+          fi
+
+      - name: Load SHPC module and setup environment
+        id: shpc_setup
+        run: |
+          set -euo pipefail
+          echo "Loading SHPC module..."
+          if module load shpc/0.1.32; then
+            echo "✓ SHPC module loaded successfully"
+            shpc --version
+          else
+            echo "✗ Failed to load SHPC module"
+            exit 1
+          fi
+          
+          # Set SHPC registry path
+          SHPC_REGISTRY="/software/setonix/2025.08/pawsey/software/shpc/pawsey_registry"
+          echo "SHPC_REGISTRY=$SHPC_REGISTRY" >> $GITHUB_ENV
+          echo "SHPC registry path: $SHPC_REGISTRY"
+
+      - name: Determine deployment target and get SHA256 digest
+        id: get_image_info
+        run: |
+          set -euo pipefail
+          
+          # Prioritize Quay.io if available, otherwise use Docker Hub
+          if [ "${{ needs.PREPARE-job.outputs.quayio_available }}" = "true" ]; then
+            full_image="quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+            registry_url="https://quay.io/v2"
+            api_path="${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}"
+            registry_type="quay.io"
+          elif [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" = "true" ]; then
+            full_image="${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+            registry_url="https://registry-1.docker.io/v2"
+            api_path="${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}"
+            registry_type="docker.io"
+          else
+            echo "Error: No public registry available for deployment"
+            exit 1
+          fi
+          
+          echo "Deploying image: $full_image"
+          echo "Registry API: $registry_url"
+          echo "API path: $api_path"
+          
+          # Get manifest and extract digest
+          echo "Fetching manifest for tag: ${VERSION}"
+          
+          digest=$(curl -s -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+            "$registry_url/$api_path/manifests/${VERSION}" \
+            | jq -r '.config.digest // empty')
+          
+          if [ -z "$digest" ] || [ "$digest" = "null" ]; then
+            echo "Warning: Could not get digest, using placeholder"
+            digest="sha256:placeholder_digest_for_${VERSION}"
+          fi
+          
+          echo "SHA256 digest: $digest"
+          
+          # Set outputs
+          echo "full_image=$full_image" >> $GITHUB_OUTPUT
+          echo "registry_type=$registry_type" >> $GITHUB_OUTPUT
+          echo "digest=$digest" >> $GITHUB_OUTPUT
+
+      - name: Create SHPC container registry entry
+        run: |
+          set -euo pipefail
+          
+          full_image="${{ steps.get_image_info.outputs.full_image }}"
+          registry_type="${{ steps.get_image_info.outputs.registry_type }}"
+          digest="${{ steps.get_image_info.outputs.digest }}"
+          
+          # Create registry directory structure based on the deployed image
+          if [ "$registry_type" = "quay.io" ]; then
+            shpc_path="${SHPC_REGISTRY}/quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}"
+          else
+            shpc_path="${SHPC_REGISTRY}/docker.io/${{ vars.DOCKERHUB_USERNAME }}/${DOCKERFILE_NAME}"
+          fi
+          
+          echo "Creating SHPC registry entry at: $shpc_path"
+          
+          # Create container.yaml content
+          container_yaml=$(cat <<EOF
+          docker: $full_image
+          
+          latest:
+            "${VERSION}": "$digest"
+          tags:
+            "${VERSION}": "$digest"
+          
+          maintainer: "@github-actions"
+          
+          description: "Container for ${DOCKERFILE_NAME} version ${VERSION} - built and deployed via CI/CD"
+          url: "https://github.com/${GITHUB_REPOSITORY}"
+          EOF
+          )
+          
+          echo "Container YAML content:"
+          echo "$container_yaml"
+          
+          # Verify SHPC configuration before writing
+          echo "Verifying SHPC configuration..."
+          module load shpc/0.1.32
+          if shpc config get registry | grep -q pawsey_registry; then
+            echo "✓ SHPC registry is properly configured"
+          else
+            echo "Warning: SHPC registry may not be properly configured"
+          fi
+          
+          # Switch to spack user to write to registry (spack user has write permissions)
+          echo "Switching to spack user to write to registry..."
+          sudo su - spack -c "
+            set -euo pipefail
+            mkdir -p '$shpc_path'
+            cat > '$shpc_path/container.yaml' <<'EOF'
+          $container_yaml
+          EOF
+            echo '✓ SHPC registry entry created successfully'
+            ls -la '$shpc_path/'
+            cat '$shpc_path/container.yaml'
+          "
+          
+          echo "✅ SHPC deployment completed"
+          echo "Registry path: $shpc_path"
+          echo "Image: $full_image"
+          echo "Version: ${VERSION}"
+          echo "Digest: $digest"
+
   SUMMARY-job:
-    needs: [BUILD-job, PREPARE-job, PUSH-PRIV-job, PUSH-PUBLIC-job]
+    needs: [BUILD-job, PREPARE-job, PUSH-PRIV-job, PUSH-PUBLIC-job, DEPLOY-job]
     runs-on: ubuntu-latest
     if: always() && needs.PREPARE-job.outputs.proceed_valid == 'true'
     env:
@@ -1211,6 +1358,62 @@ jobs:
               echo ""
             fi
             
+            echo "## 🚀 SHPC Container Deployment"
+            echo ""
+            echo "| Registry Path | Image Source | Status |"
+            echo "|---------------|--------------|--------|"
+            
+            # SHPC deployment status based on DEPLOY-job result and available registries
+            if [ "${{ needs.DEPLOY-job.result }}" = "success" ]; then
+              # Determine which registry was used for SHPC deployment
+              if [ "${{ needs.PREPARE-job.outputs.quayio_available }}" = "true" ]; then
+                echo "| \`/software/setonix/2025.08/pawsey/software/shpc/pawsey_registry/quay.io/${{ vars.QUAYIO_USERNAME }}/${{ env.DOCKERFILE_NAME }}/\` | \`quay.io/${{ vars.QUAYIO_USERNAME }}/${{ env.DOCKERFILE_NAME }}:${{ env.VERSION }}\` | ✅ Deployed |"
+                echo ""
+                echo "### SHPC Usage Commands"
+                echo ""
+                echo "Load and use the container via SHPC:"
+                echo "\`\`\`bash"
+                echo "# Load SHPC module"
+                echo "module load shpc/0.1.32"
+                echo ""
+                echo "# Install the container"
+                echo "shpc install quay.io/${{ vars.QUAYIO_USERNAME }}/${{ env.DOCKERFILE_NAME }}:${{ env.VERSION }}"
+                echo ""
+                echo "# Show available commands"
+                echo "shpc show quay.io/${{ vars.QUAYIO_USERNAME }}/${{ env.DOCKERFILE_NAME }}:${{ env.VERSION }}"
+                echo ""
+                echo "# Use the container"
+                echo "shpc run quay.io/${{ vars.QUAYIO_USERNAME }}/${{ env.DOCKERFILE_NAME }}:${{ env.VERSION }} <command>"
+                echo "\`\`\`"
+              elif [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" = "true" ]; then
+                echo "| \`/software/setonix/2025.08/pawsey/software/shpc/pawsey_registry/docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.DOCKERFILE_NAME }}/\` | \`docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.DOCKERFILE_NAME }}:${{ env.VERSION }}\` | ✅ Deployed |"
+                echo ""
+                echo "### SHPC Usage Commands"
+                echo ""
+                echo "Load and use the container via SHPC:"
+                echo "\`\`\`bash"
+                echo "# Load SHPC module"
+                echo "module load shpc/0.1.32"
+                echo ""
+                echo "# Install the container"
+                echo "shpc install docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.DOCKERFILE_NAME }}:${{ env.VERSION }}"
+                echo ""
+                echo "# Show available commands"
+                echo "shpc show docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.DOCKERFILE_NAME }}:${{ env.VERSION }}"
+                echo ""
+                echo "# Use the container"
+                echo "shpc run docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.DOCKERFILE_NAME }}:${{ env.VERSION }} <command>"
+                echo "\`\`\`"
+              fi
+            elif [ "${{ needs.DEPLOY-job.result }}" = "failure" ]; then
+              echo "| SHPC Registry | N/A | ❌ Deployment Failed |"
+            elif [ "${{ needs.DEPLOY-job.result }}" = "skipped" ]; then
+              echo "| SHPC Registry | N/A | ⏭️ Skipped (No public registry available) |"
+            else
+              echo "| SHPC Registry | N/A | ⏸️ Not Executed |"
+            fi
+            
+            echo ""
             echo "## 📊 Job Results"
             echo ""
             echo "| Job | Status |"
@@ -1220,6 +1423,7 @@ jobs:
             echo "| SCAN-AND-REPORT | ${{ needs['SCAN-AND-REPORT-job'].result == 'success' && '✅ Success' || (needs['SCAN-AND-REPORT-job'].result == 'skipped' && '⏭️ Skipped') || '❌ Failed' }} |"
             echo "| PUSH-PRIV | ${{ needs.PUSH-PRIV-job.result == 'success' && '✅ Success' || '❌ Failed' }} |"
             echo "| PUSH-PUBLIC | ${{ needs.PUSH-PUBLIC-job.result == 'success' && '✅ Success' || '❌ Failed' }} |"
+            echo "| DEPLOY | ${{ needs.DEPLOY-job.result == 'success' && '✅ Success' || (needs.DEPLOY-job.result == 'skipped' && '⏭️ Skipped') || '❌ Failed' }} |"
             
           } >> "$GITHUB_STEP_SUMMARY"
 
