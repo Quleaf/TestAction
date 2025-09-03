@@ -9,7 +9,7 @@ on:
         - 'cicd*'
 jobs:
   PREPARE-job:
-    runs-on: [self-hosted, Linux, X64, podman, test, setonix-podman02]
+    runs-on: ubuntu-latest
     outputs:
       # Job Output Variables:
       # - proceed_valid: Whether to proceed with build (true/false, e.g., "true")
