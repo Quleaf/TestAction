@@ -1,5 +1,5 @@
 name: 'Setup Rclone'
-description: 'Installs and configures rclone for S3 uploads/downloads without sudo, using $HOME/.cache/rclone for caching. Optionally downloads archive from S3.'
+description: 'Configures rclone for S3 operations using system module rclone/1.68.1. Supports downloading archives from S3 and uploading files to S3 with optimized settings.'
 inputs:
   access_key_id:
     description: 'Access Key ID for S3'
@@ -31,10 +31,22 @@ inputs:
     description: 'Whether to load the downloaded archive into podman'
     required: false
     default: 'false'
+  # Upload-specific inputs
+  upload_mode:
+    description: 'Whether to upload file to S3 (true/false)'
+    required: false
+    default: 'false'
+  upload_file:
+    description: 'Local file path to upload - required when upload_mode=true'
+    required: false
+  upload_file_type:
+    description: 'Type of file being uploaded (archive/sif) for output naming'
+    required: false
+    default: 'archive'
 outputs:
-  rclone_installed:
-    description: 'Indicates if rclone was installed in this run'
-    value: ${{ steps.check_rclone.outputs.installed }}
+  rclone_loaded:
+    description: 'Indicates if rclone module was loaded successfully'
+    value: ${{ steps.load_rclone.outputs.loaded }}
   # Download-specific outputs
   archive_downloaded:
     description: 'Indicates if archive was downloaded'
@@ -51,55 +63,43 @@ outputs:
   image_tag:
     description: 'Image tag if loaded to podman'
     value: ${{ steps.load.outputs.image_tag }}
+  # Upload-specific outputs
+  file_uploaded:
+    description: 'Indicates if file was uploaded to S3'
+    value: ${{ steps.upload.outputs.uploaded }}
+  upload_bucket:
+    description: 'S3 bucket where file was uploaded'
+    value: ${{ steps.upload.outputs.s3_bucket }}
+  upload_path:
+    description: 'S3 path of the uploaded file'
+    value: ${{ steps.upload.outputs.s3_path }}
+  upload_size:
+    description: 'Size of the uploaded file'
+    value: ${{ steps.upload.outputs.file_size }}
 runs:
   using: 'composite'
   steps:
-    - name: Prepare cache path env
-      id: envprep
+    - name: Load rclone module
+      id: load_rclone
       shell: bash
       run: |
         set -euo pipefail
-        # Define cache directory under $HOME/.cache/rclone
-        echo "RCLONE_CACHE_DIR=$HOME/.cache/rclone" >> $GITHUB_ENV
-        echo "RCLONE_CACHE_BIN=$HOME/.cache/rclone/rclone" >> $GITHUB_ENV
-
-    - name: Check if rclone is available locally or in cache
-      id: check_rclone
-      shell: bash
-      run: |
-        set -euo pipefail
-        if [ -x "./rclone" ]; then
-          # rclone binary already present in the current directory
-          echo "Found local ./rclone"
-          echo "installed=true" >> $GITHUB_OUTPUT
-        elif [ -x "${RCLONE_CACHE_BIN}" ]; then
-          # Found cached binary, copy it to current directory
-          echo "Found cached rclone at ${RCLONE_CACHE_BIN}; copying to ./rclone"
-          cp "${RCLONE_CACHE_BIN}" ./rclone
-          chmod +x ./rclone
-          echo "installed=true" >> $GITHUB_OUTPUT
+        echo "Loading rclone module..."
+        if module load rclone/1.68.1; then
+          echo "✓ rclone module loaded successfully"
+          echo "loaded=true" >> $GITHUB_OUTPUT
+          # Verify rclone is available
+          if command -v rclone >/dev/null 2>&1; then
+            echo "✓ rclone command is available"
+            rclone version
+          else
+            echo "✗ rclone command not found after module load"
+            exit 1
+          fi
         else
-          # rclone not installed locally or in cache
-          echo "rclone not found locally or in cache"
-          echo "installed=false" >> $GITHUB_OUTPUT
+          echo "✗ Failed to load rclone module"
+          exit 1
         fi
-
-    - name: Download rclone and populate cache (no sudo)
-      if: steps.check_rclone.outputs.installed != 'true'
-      shell: bash
-      run: |
-        set -euo pipefail
-        mkdir -p "${RCLONE_CACHE_DIR}"
-        echo "Downloading rclone..."
-        curl -sSL https://downloads.rclone.org/rclone-current-linux-amd64.zip -o rclone.zip
-        unzip -q rclone.zip
-        # Extracted directory has a dynamic name like rclone-*-linux-amd64
-        SRC_DIR="$(echo rclone-*-linux-amd64)"
-        mv "${SRC_DIR}/rclone" ./rclone
-        chmod +x ./rclone
-        # Save to cache for reuse in future runs
-        cp ./rclone "${RCLONE_CACHE_BIN}"
-        echo "rclone downloaded and cached at ${RCLONE_CACHE_BIN}"
 
     - name: Configure rclone (local config)
       shell: bash
@@ -123,7 +123,7 @@ runs:
       run: |
         set -euo pipefail
         echo "Verifying rclone configuration..."
-        ./rclone config show
+        rclone config show
 
     - name: Download archive from S3
       id: download
@@ -146,7 +146,7 @@ runs:
         echo "Archive: $archive_file"
         
         # Download from S3
-        if ./rclone copy pawsey0012:"$bucket/$archive_file" ./ --progress; then
+        if rclone copy pawsey0012:"$bucket/$archive_file" ./ --progress; then
           if [ -f "./$archive_file" ]; then
             file_size=$(ls -lh "./$archive_file" | awk '{print $5}')
             echo "✓ Archive downloaded successfully from S3"
@@ -166,7 +166,7 @@ runs:
           echo "✗ Failed to download archive from S3"
           echo "  Tried: s3://$bucket/$archive_file"
           echo "Available files in bucket:"
-          ./rclone lsf pawsey0012:"$bucket/" | head -10 || echo "  (Cannot list bucket contents)"
+          rclone lsf pawsey0012:"$bucket/" | head -10 || echo "  (Cannot list bucket contents)"
           exit 1
         fi
 
@@ -190,5 +190,94 @@ runs:
           echo "image_tag=${dockerfile_name}:${version}" >> "$GITHUB_OUTPUT"
         else
           echo "✗ Failed to load image: ${dockerfile_name}:${version}"
+          exit 1
+        fi
+
+    - name: Upload file to S3 storage
+      id: upload
+      if: inputs.upload_mode == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        # Validate required inputs for upload mode
+        if [ -z "${{ inputs.upload_file }}" ]; then
+          echo "Error: upload_file is required when upload_mode=true"
+          exit 1
+        fi
+        
+        upload_file="${{ inputs.upload_file }}"
+        bucket="${{ inputs.bucket }}"
+        file_type="${{ inputs.upload_file_type }}"
+        
+        # Verify file exists
+        if [ ! -f "$upload_file" ]; then
+          echo "Error: Upload file not found: $upload_file"
+          exit 1
+        fi
+        
+        echo "Uploading file to S3..."
+        echo "File: $upload_file"
+        echo "Bucket: $bucket"
+        echo "Type: $file_type"
+        
+        # Calculate file size for optimization
+        FILE_SIZE=$(wc -c < "$upload_file")
+        echo "File size: $FILE_SIZE bytes"
+        
+        # Set rclone parameters based on file size
+        if [ "$FILE_SIZE" -lt $((1024 * 1024 * 500)) ]; then
+          # < 500MB
+          S3_CHUNK_SIZE="16M"
+          S3_UPLOAD_CONCURRENCY=4
+          MULTI_THREAD_STREAMS=2
+        elif [ "$FILE_SIZE" -lt $((1024 * 1024 * 5000)) ]; then
+          # 500MB - 5GB
+          S3_CHUNK_SIZE="64M"
+          S3_UPLOAD_CONCURRENCY=8
+          MULTI_THREAD_STREAMS=4
+        else
+          # > 5GB
+          S3_CHUNK_SIZE="128M"
+          S3_UPLOAD_CONCURRENCY=16
+          MULTI_THREAD_STREAMS=8
+        fi
+        
+        echo "Optimized settings for $file_type upload:"
+        echo "  S3 chunk size: $S3_CHUNK_SIZE"
+        echo "  Upload concurrency: $S3_UPLOAD_CONCURRENCY"
+        echo "  Multi-thread streams: $MULTI_THREAD_STREAMS"
+        
+        # Upload to S3
+        if rclone copy "$upload_file" pawsey0012:"$bucket/" \
+          --multi-thread-streams=$MULTI_THREAD_STREAMS \
+          --s3-chunk-size=$S3_CHUNK_SIZE \
+          --s3-upload-concurrency=$S3_UPLOAD_CONCURRENCY \
+          --progress; then
+          
+          # Get filename for verification
+          filename=$(basename "$upload_file")
+          
+          # Verify upload
+          if rclone lsf pawsey0012:"$bucket/" | grep -q "^$filename$"; then
+            file_size_human=$(ls -lh "$upload_file" | awk '{print $5}')
+            echo "✓ File successfully uploaded to S3"
+            echo "  [BUCKET]: $bucket"
+            echo "  [S3 PATH]: $filename"
+            echo "  [SIZE]: $file_size_human"
+            
+            # Set outputs
+            echo "uploaded=true" >> "$GITHUB_OUTPUT"
+            echo "s3_bucket=$bucket" >> "$GITHUB_OUTPUT"
+            echo "s3_path=$filename" >> "$GITHUB_OUTPUT"
+            echo "file_size=$file_size_human" >> "$GITHUB_OUTPUT"
+          else
+            echo "✗ Failed to verify S3 upload"
+            exit 1
+          fi
+        else
+          echo "✗ Failed to upload file to S3"
+          echo "Available files in bucket:"
+          rclone lsf pawsey0012:"$bucket/" | head -10 || echo "  (Cannot list bucket contents)"
           exit 1
         fi

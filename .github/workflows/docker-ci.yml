@@ -448,77 +448,18 @@ jobs:
           echo "archive_file=$output_file" >> $GITHUB_OUTPUT
           echo "archive_path=${PWD}/$output_file" >> $GITHUB_OUTPUT
 
-      - name: Configure S3 upload client
+      - name: Upload archive to S3 storage
+        id: s3_upload
         uses: ./.github/actions/setup-rclone
         with:
           access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
           secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
           endpoint: https://projects.pawsey.org.au
           bucket: ${{ vars.ACACIA_BUCKETNAME }}
-          destination_path: ${{ steps.save_container.outputs.archive_file }}
-
-      - name: Upload archive to S3 storage
-        id: s3_upload
-        run: |
-          # Get variables
-          archive_file="${{ steps.save_container.outputs.archive_file }}"
-          dockerfile_name="${{ steps.build_container.outputs.dockerfile_name }}"
-          version="${{ needs.PREPARE-job.outputs.version }}"
-          bucket="${{ vars.ACACIA_BUCKETNAME }}"
-          
-          echo "Uploading directly to S3 (no local storage)..."
-          echo "Archive: $archive_file"
-          echo "Bucket: $bucket"
-          echo "S3 path: $archive_file"
-          
-          # Calculate file size for optimization
-          FILE_SIZE=$(wc -c < "$archive_file")
-          echo "File size: $FILE_SIZE bytes"
-          
-          # Set rclone parameters based on file size
-          if [ "$FILE_SIZE" -lt $((1024 * 1024 * 500)) ]; then
-            # < 500MB
-            S3_CHUNK_SIZE="16M"
-            S3_UPLOAD_CONCURRENCY=4
-            MULTI_THREAD_STREAMS=2
-          elif [ "$FILE_SIZE" -lt $((1024 * 1024 * 5000)) ]; then
-            # 500MB - 5GB
-            S3_CHUNK_SIZE="64M"
-            S3_UPLOAD_CONCURRENCY=8
-            MULTI_THREAD_STREAMS=4
-          else
-            # > 5GB
-            S3_CHUNK_SIZE="128M"
-            S3_UPLOAD_CONCURRENCY=16
-            MULTI_THREAD_STREAMS=8
-          fi
-          
-          echo "Optimized settings:"
-          echo "  S3 chunk size: $S3_CHUNK_SIZE"
-          echo "  Upload concurrency: $S3_UPLOAD_CONCURRENCY"
-          echo "  Multi-thread streams: $MULTI_THREAD_STREAMS"
-          
-          # Upload to S3
-          ./rclone copy "$archive_file" pawsey0012:"$bucket/" \
-            --multi-thread-streams=$MULTI_THREAD_STREAMS \
-            --s3-chunk-size=$S3_CHUNK_SIZE \
-            --s3-upload-concurrency=$S3_UPLOAD_CONCURRENCY \
-            --progress
-          
-          # Verify upload
-          if ./rclone lsf pawsey0012:"$bucket/" | grep -q "^$archive_file$"; then
-            echo "✓ Archive successfully uploaded to S3"
-            echo "  [BUCKET]: $bucket"
-            echo "  [S3 PATH]: $archive_file"
-            echo "  [SIZE]: $(ls -lh "$archive_file" | awk '{print $5}')"
-          else
-            echo "✗ Failed to verify S3 upload"
-            exit 1
-          fi
-          
-          # Set outputs
-          echo "s3_bucket=$bucket" >> $GITHUB_OUTPUT
-          echo "s3_path=$archive_file" >> $GITHUB_OUTPUT
+          destination_path: ""  # Not used in upload mode
+          upload_mode: 'true'
+          upload_file: ${{ steps.save_container.outputs.archive_file }}
+          upload_file_type: 'archive'
 
       - name: Load Singularity module and generate SIF file
         id: build_sif
@@ -566,77 +507,18 @@ jobs:
           echo "sif_file=$sif_file" >> $GITHUB_OUTPUT
           echo "sif_path=${PWD}/$sif_file" >> $GITHUB_OUTPUT
 
-      - name: Configure S3 upload for SIF file
+      - name: Upload SIF file to S3 storage
+        id: s3_sif_upload
         uses: ./.github/actions/setup-rclone
         with:
           access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
           secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
           endpoint: https://projects.pawsey.org.au
           bucket: ${{ vars.ACACIA_SIF_BUCKETNAME }}
-          destination_path: ${{ steps.build_sif.outputs.sif_file }}
-
-      - name: Upload SIF file to S3 storage
-        id: s3_sif_upload
-        run: |
-          # Get variables
-          sif_file="${{ steps.build_sif.outputs.sif_file }}"
-          dockerfile_name="${{ steps.build_container.outputs.dockerfile_name }}"
-          version="${{ needs.PREPARE-job.outputs.version }}"
-          sif_bucket="${{ vars.ACACIA_SIF_BUCKETNAME }}"
-          
-          echo "Uploading SIF file to S3..."
-          echo "SIF file: $sif_file"
-          echo "Bucket: $sif_bucket"
-          echo "S3 path: $sif_file"
-          
-          # Calculate file size for optimization
-          FILE_SIZE=$(wc -c < "$sif_file")
-          echo "File size: $FILE_SIZE bytes"
-          
-          # Set rclone parameters based on file size
-          if [ "$FILE_SIZE" -lt $((1024 * 1024 * 500)) ]; then
-            # < 500MB
-            S3_CHUNK_SIZE="16M"
-            S3_UPLOAD_CONCURRENCY=4
-            MULTI_THREAD_STREAMS=2
-          elif [ "$FILE_SIZE" -lt $((1024 * 1024 * 5000)) ]; then
-            # 500MB - 5GB
-            S3_CHUNK_SIZE="64M"
-            S3_UPLOAD_CONCURRENCY=8
-            MULTI_THREAD_STREAMS=4
-          else
-            # > 5GB
-            S3_CHUNK_SIZE="128M"
-            S3_UPLOAD_CONCURRENCY=16
-            MULTI_THREAD_STREAMS=8
-          fi
-          
-          echo "Optimized settings for SIF upload:"
-          echo "  S3 chunk size: $S3_CHUNK_SIZE"
-          echo "  Upload concurrency: $S3_UPLOAD_CONCURRENCY"
-          echo "  Multi-thread streams: $MULTI_THREAD_STREAMS"
-          
-          # Upload SIF to S3
-          ./rclone copy "$sif_file" pawsey0012:"$sif_bucket/" \
-            --multi-thread-streams=$MULTI_THREAD_STREAMS \
-            --s3-chunk-size=$S3_CHUNK_SIZE \
-            --s3-upload-concurrency=$S3_UPLOAD_CONCURRENCY \
-            --progress
-          
-          # Verify upload
-          if ./rclone lsf pawsey0012:"$sif_bucket/" | grep -q "^$sif_file$"; then
-            echo "✓ SIF file successfully uploaded to S3"
-            echo "  [BUCKET]: $sif_bucket"
-            echo "  [S3 PATH]: $sif_file"
-            echo "  [SIZE]: $(ls -lh "$sif_file" | awk '{print $5}')"
-          else
-            echo "✗ Failed to verify SIF S3 upload"
-            exit 1
-          fi
-          
-          # Set outputs
-          echo "s3_sif_bucket=$sif_bucket" >> $GITHUB_OUTPUT
-          echo "s3_sif_path=$sif_file" >> $GITHUB_OUTPUT
+          destination_path: ""  # Not used in upload mode
+          upload_mode: 'true'
+          upload_file: ${{ steps.build_sif.outputs.sif_file }}
+          upload_file_type: 'sif'
 
 
   SCAN-AND-REPORT-job:
@@ -1219,16 +1101,16 @@ jobs:
             
             # S3 Docker Archive Storage
             if [ "${{ needs.BUILD-job.result }}" = "success" ]; then
-              echo "| S3 Docker Archive | \`s3://pawsey0012:${{ vars.ACACIA_BUCKETNAME }}/${{ env.DOCKERFILE_NAME }}_${{ env.VERSION }}.tar\` | ✅ Uploaded |"
+              echo "| S3 Docker Archive | \`s3://${{ vars.ACACIA_BUCKETNAME }}/${{ env.DOCKERFILE_NAME }}_${{ env.VERSION }}.tar\` | ✅ Uploaded |"
             else
-              echo "| S3 Docker Archive | \`s3://pawsey0012:${{ vars.ACACIA_BUCKETNAME }}/${{ env.DOCKERFILE_NAME }}_${{ env.VERSION }}.tar\` | ❌ Failed |"
+              echo "| S3 Docker Archive | \`s3://${{ vars.ACACIA_BUCKETNAME }}/${{ env.DOCKERFILE_NAME }}_${{ env.VERSION }}.tar\` | ❌ Failed |"
             fi
             
             # S3 Singularity SIF Storage
             if [ "${{ needs.BUILD-job.result }}" = "success" ]; then
-              echo "| S3 Singularity SIF | \`s3://pawsey0012:${{ vars.ACACIA_SIF_BUCKETNAME }}/${{ env.DOCKERFILE_NAME }}_${{ env.VERSION }}.sif\` | ✅ Uploaded |"
+              echo "| S3 Singularity SIF | \`s3://${{ vars.ACACIA_SIF_BUCKETNAME }}/${{ env.DOCKERFILE_NAME }}_${{ env.VERSION }}.sif\` | ✅ Uploaded |"
             else
-              echo "| S3 Singularity SIF | \`s3://pawsey0012:${{ vars.ACACIA_SIF_BUCKETNAME }}/${{ env.DOCKERFILE_NAME }}_${{ env.VERSION }}.sif\` | ❌ Failed |"
+              echo "| S3 Singularity SIF | \`s3://${{ vars.ACACIA_SIF_BUCKETNAME }}/${{ env.DOCKERFILE_NAME }}_${{ env.VERSION }}.sif\` | ❌ Failed |"
             fi
             
             echo ""
