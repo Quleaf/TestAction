@@ -520,7 +520,7 @@ jobs:
           echo "s3_bucket=$bucket" >> $GITHUB_OUTPUT
           echo "s3_path=$archive_file" >> $GITHUB_OUTPUT
 
-      - name: Generate Singularity SIF file
+      - name: Load Singularity module and generate SIF file
         id: build_sif
         run: |
           # Get variables
@@ -531,11 +531,24 @@ jobs:
           # Define SIF output file
           sif_file="${dockerfile_name}_${version}.sif"
           
-          echo "Generating Singularity SIF file..."
+          echo "Loading Singularity module and generating SIF file..."
           echo "Source: docker-archive://$archive_file"
           echo "Output: $sif_file"
           
+          # Load Singularity module
+          echo "Loading Singularity module..."
+          if module load singularity/4.1.0; then
+            echo "✓ Singularity module loaded successfully"
+          else
+            echo "✗ Failed to load Singularity module"
+            exit 1
+          fi
+          
+          # Verify Singularity is available
+          singularity --version
+          
           # Build SIF file from Docker archive using Singularity
+          echo "Building SIF file from Docker archive..."
           if singularity build "$sif_file" "docker-archive://$archive_file"; then
             if [ -f "$sif_file" ]; then
               file_size=$(ls -lh "$sif_file" | awk '{print $5}')
