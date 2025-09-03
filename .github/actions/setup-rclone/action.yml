@@ -77,7 +77,7 @@ runs:
         # Store configuration in project-local directory
         mkdir -p ./.rclone_config
         tee ./.rclone_config/rclone.conf > /dev/null <<EOF
-        [pawsey0001]
+        [pawsey0012]
         type = s3
         provider = Ceph
         endpoint = ${{ inputs.endpoint }}

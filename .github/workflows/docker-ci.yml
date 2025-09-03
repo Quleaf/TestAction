@@ -840,7 +840,7 @@ jobs:
         
         # Execute rclone upload
         echo "Starting upload..."
-        ./rclone copy "$archive_file" pawsey0001:"$bucket/" \
+        ./rclone copy "$archive_file" pawsey0012:"$bucket/" \
           --multi-thread-streams=$MULTI_THREAD_STREAMS \
           --s3-chunk-size=$S3_CHUNK_SIZE \
           --s3-upload-concurrency=$S3_UPLOAD_CONCURRENCY \
