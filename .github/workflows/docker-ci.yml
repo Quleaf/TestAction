@@ -32,12 +32,12 @@ jobs:
       setonixreg_available: ${{ steps.check_vars_secrets.outputs.setonixreg_available }}
     
     steps:
-      - name: Set default runner label
+      - name: Initialize runner configuration
         id: set_default_runner_label
         run: |
           echo "runner_label=ubuntu-latest" >> $GITHUB_OUTPUT
 
-      - name: Check required variables and secrets
+      - name: Validate environment credentials
         id: check_vars_secrets
         run: |
           missing_vars=()
@@ -129,12 +129,12 @@ jobs:
           fi
           echo "==================================="
 
-      - name: Checkout repository
+      - name: Checkout source code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2  # Ensure enough history is available
 
-      - name: Verify git history depth
+      - name: Validate git history access
         run: |
           # Check if we have enough history for git diff
           if [ -z "${{ github.event.before }}" ]; then
@@ -152,7 +152,7 @@ jobs:
           
           echo "Git history verification passed. Previous commit ${{ github.event.before }} is accessible."
 
-      - name: Get changed files
+      - name: Detect modified Dockerfiles
         id: changed_files
         run: |
           # Get all Dockerfile variants (case-insensitive)
@@ -183,12 +183,12 @@ jobs:
           echo "proceed_valid=true" >> $GITHUB_OUTPUT
 
 
-      - name: Debug output of changed files 
+      - name: Debug changed files output
         run: |
           echo "Files from output: ${{ steps.changed_files.outputs.files }}"      
 
 
-      - name: Validate file changes
+      - name: Validate single file modification
         id: validate_changes
         if: steps.changed_files.outputs.proceed_valid == 'true'
         run: |
@@ -197,7 +197,7 @@ jobs:
           echo "valid=true" >> $GITHUB_OUTPUT
           echo "dockerfile_path=$changed_files" >> $GITHUB_OUTPUT
 
-      - name: Validate version label
+      - name: Extract and validate version
         id: validate_version
         if: steps.validate_changes.outputs.valid == 'true'
         run: |
@@ -221,7 +221,7 @@ jobs:
             echo "message=Missing version label" >> $GITHUB_OUTPUT
           fi
 
-      - name: Parse optional settings
+      - name: Parse build configuration flags
         id: parse_settings
         if: steps.validate_changes.outputs.valid == 'true'
         run: |
@@ -252,7 +252,7 @@ jobs:
             echo "noscan=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set proceed flag
+      - name: Determine workflow execution status
         id: set_proceed_flag
         run: |
           files_proceed="${{ steps.changed_files.outputs.proceed_valid }}"
@@ -283,7 +283,7 @@ jobs:
           echo "devmode=${{ steps.parse_settings.outputs.devmode || 'false' }}" >> $GITHUB_OUTPUT
           echo "noscan=${{ steps.parse_settings.outputs.noscan || 'false' }}" >> $GITHUB_OUTPUT 
 
-      - name: Set current date
+      - name: Generate date tag
         if: steps.set_proceed_flag.outputs.proceed_valid == 'true'
         id: date
         run: |
@@ -299,16 +299,16 @@ jobs:
       image_tag: ${{ steps.build_container.outputs.image_tag }}
       dockerfile_name: ${{ steps.build_container.outputs.dockerfile_name }}
     steps:
-      - name: Print hostname
+      - name: Display build environment
         run: |
           echo "Hostname: $(hostname)"
 
-      - name: Checkout repository
+      - name: Checkout source code
         uses: actions/checkout@v4
         with:
           fetch-depth: 1  # As the runs-on machine maybe different from Build, re-checkout source code. Only the current commit is needed
 
-      - name: Setup container environment
+      - name: Configure podman environment
         id: setup_env
         run: |
           echo "Setting up container environment variables..."
@@ -345,7 +345,7 @@ jobs:
           echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}" >> $GITHUB_ENV
           echo "TMPDIR=${TMPDIR}" >> $GITHUB_ENV
 
-      - name: Setup podman cache
+      - name: Initialize build cache
         id: setup_cache
         run: |
           # Setup podman cache directory
@@ -368,7 +368,7 @@ jobs:
           
           echo "CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
 
-      - name: Build container with podman
+      - name: Build container image
         id: build_container
         run: |
           # Get variables from PREPARE-job
@@ -414,7 +414,7 @@ jobs:
           echo "image_tag=${dockerfile_name}:${version}" >> $GITHUB_OUTPUT
           echo "dockerfile_name=${dockerfile_name}" >> $GITHUB_OUTPUT
 
-      - name: Save container to archive
+      - name: Export image to archive
         id: save_container
         run: |
           # Get variables from previous step
@@ -448,7 +448,7 @@ jobs:
           echo "archive_file=$output_file" >> $GITHUB_OUTPUT
           echo "archive_path=${PWD}/$output_file" >> $GITHUB_OUTPUT
 
-      - name: Setup rclone for S3 upload
+      - name: Configure S3 upload client
         uses: ./.github/actions/setup-rclone
         with:
           access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
@@ -457,7 +457,7 @@ jobs:
           bucket: ${{ vars.ACACIA_BUCKETNAME }}
           destination_path: ${{ steps.save_container.outputs.archive_file }}
 
-      - name: Upload to S3 (no local storage)
+      - name: Upload archive to S3 storage
         id: s3_upload
         run: |
           # Get variables
@@ -530,11 +530,11 @@ jobs:
       VERSION: ${{ needs.PREPARE-job.outputs.version }}
       REPORT_DIR: ./trivy-reports
     steps:
-    - name: Print host
+    - name: Display scan environment
       run: |
           echo "Hostname: $(hostname)"
 
-    - name: Download image archive from S3
+    - name: Download archive from S3
       id: locate
       uses: ./.github/actions/setup-rclone
       with:
@@ -548,13 +548,13 @@ jobs:
         version: ${{ env.VERSION }}
         load_to_podman: false
 
-    - name: Prepare report directory
+    - name: Initialize scan workspace
       run: |
         mkdir -p "${REPORT_DIR}"
         echo "Report directory created: ${REPORT_DIR}"
 
     # Generate JSON report first
-    - name: Trivy (JSON scan for processing)
+    - name: Run vulnerability scan (JSON)
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: image
@@ -572,7 +572,7 @@ jobs:
         TRIVY_SKIP_JAVA_DB_UPDATE: false
 
     # Process JSON to create readable summary
-    - name: Generate readable summary from JSON
+    - name: Process scan results to summary
       run: |
         python3 -c "
         import json
@@ -651,7 +651,7 @@ jobs:
             print(f'Error: {e}', file=sys.stderr)
         "
 
-    - name: Debug Trivy output
+    - name: Debug scan output
       run: |
         echo "=== Trivy output file exists? ==="
         ls -la "${REPORT_DIR}/summary.md" || echo "Summary file not found"
@@ -662,7 +662,7 @@ jobs:
         echo "=== Report directory contents ==="
         ls -la "${REPORT_DIR}/" || echo "Report directory not found"
 
-    - name: Append to GitHub Actions summary
+    - name: Publish scan report to workflow summary
       run: |
         {
           echo "## Trivy Scan Report for \`${{ env.DOCKERFILE_NAME }}\`"
@@ -695,7 +695,7 @@ jobs:
         } >> "$GITHUB_STEP_SUMMARY"
 
     # Generate SARIF report for GitHub Security
-    - name: Trivy (SARIF for GitHub Security)
+    - name: Generate security report (SARIF)
       uses: aquasecurity/trivy-action@master
       if: always()
       with:
@@ -713,13 +713,13 @@ jobs:
         TRIVY_SKIP_DB_UPDATE: true
         TRIVY_SKIP_JAVA_DB_UPDATE: true
 
-    - name: Upload SARIF to Security tab
+    - name: Upload security findings to GitHub
       uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: ${{ env.REPORT_DIR }}/trivy-results.sarif
 
-    - name: Upload Trivy artifacts
+    - name: Archive scan reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -736,7 +736,7 @@ jobs:
       VERSION: ${{ needs.PREPARE-job.outputs.version }}
       BUCKET: ${{ vars.ACACIA_BUCKETNAME }}
     steps:
-    - name: Print hostname
+    - name: Display registry environment
       run: |
         echo "Hostname: $(hostname)"
 
@@ -754,7 +754,7 @@ jobs:
         version: ${{ env.VERSION }}
         load_to_podman: false
 
-    - name: "[Setonix Registry] Login and Push"
+    - name: Push to Setonix private registry
       if: needs.PREPARE-job.outputs.setonixreg_available == 'true'
       continue-on-error: true
       run: |
@@ -823,7 +823,7 @@ jobs:
       DOCKERFILE_NAME: ${{ needs.BUILD-job.outputs.dockerfile_name }}
       VERSION: ${{ needs.PREPARE-job.outputs.version }}
     steps:
-    - name: Print hostname and registry push plan
+    - name: Display public registry push plan
       run: |
         echo "Hostname: $(hostname)"
         echo ""
@@ -845,24 +845,25 @@ jobs:
           echo "[skip] Quay.io: Skipping (credentials not available)"
         fi
         
-        # Show Setonix Registry status (already pushed in PUSH-PRIV-job)
+        # Show Setonix Registry status
         if [ "${{ needs.PREPARE-job.outputs.setonixreg_available }}" = "true" ]; then
-          echo "[✓] Setonix Registry: Already pushed in PUSH-PRIV-job"
+          echo "[✓] Setonix Private Registry: Already pushed in PUSH-PRIV-job"
+          echo "[✓] Setonix Public Registry: Will push to setonix-registry.pawsey.org.au/pawsey/${DOCKERFILE_NAME}:${VERSION}"
         else
-          echo "[skip] Setonix Registry: Skipped in PUSH-PRIV-job (credentials not available)"
+          echo "[skip] Setonix Registries: Skipped (credentials not available)"
         fi
         
         # Check if any public registry is available
-        if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" != "true" ] && [ "${{ needs.PREPARE-job.outputs.quayio_available }}" != "true" ]; then
+        if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" != "true" ] && [ "${{ needs.PREPARE-job.outputs.quayio_available }}" != "true" ] && [ "${{ needs.PREPARE-job.outputs.setonixreg_available }}" != "true" ]; then
           echo ""
           echo "[INFO] No public registry pushes will be performed in this job."
-          echo "Note: Setonix Registry push (if configured) is handled in PUSH-PRIV-job."
+          echo "Note: All registry credentials are not available."
         fi
         echo ""
 
-    - name: Download and load image from S3
+    - name: Download archive and load to podman
       id: locate_and_load
-      if: needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true'
+      if: needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true' || needs.PREPARE-job.outputs.setonixreg_available == 'true'
       uses: ./.github/actions/setup-rclone
       with:
         access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
@@ -875,8 +876,8 @@ jobs:
         version: ${{ env.VERSION }}
         load_to_podman: true
 
-    - name: Skip message when no credentials available
-      if: needs.PREPARE-job.outputs.dockerhub_available != 'true' && needs.PREPARE-job.outputs.quayio_available != 'true'
+    - name: Display skip message for missing credentials
+      if: needs.PREPARE-job.outputs.dockerhub_available != 'true' && needs.PREPARE-job.outputs.quayio_available != 'true' && needs.PREPARE-job.outputs.setonixreg_available != 'true'
       run: |
         echo ""
         echo "=========================================="
@@ -898,8 +899,8 @@ jobs:
         echo "[✓] Job completed successfully (no action required)"
         echo ""
 
-    - name: Prepare Docker config directory
-      if: needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true'
+    - name: Initialize Docker configuration
+      if: needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true' || needs.PREPARE-job.outputs.setonixreg_available == 'true'
       run: |
         mkdir -p ~/.docker
         echo "Created Docker config directory: ~/.docker"
@@ -907,7 +908,7 @@ jobs:
     # ============================================
     # Docker Hub Push (Independent Operation)
     # ============================================
-    - name: "[Docker Hub] Login and Push"
+    - name: Push to Docker Hub public registry
       if: needs.PREPARE-job.outputs.dockerhub_available == 'true'
       continue-on-error: true
       run: |
@@ -953,7 +954,7 @@ jobs:
     # ============================================
     # Quay.io Push (Independent Operation)
     # ============================================
-    - name: "[Quay.io] Login and Push"
+    - name: Push to Quay.io public registry
       if: needs.PREPARE-job.outputs.quayio_available == 'true'
       continue-on-error: true
       run: |
@@ -996,8 +997,54 @@ jobs:
           exit 1
         fi
 
-    - name: Cleanup local images
-      if: always() && (needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true')
+    # ============================================
+    # Setonix Public Registry Push (Independent Operation)
+    # ============================================
+    - name: Push to Setonix public registry
+      if: needs.PREPARE-job.outputs.setonixreg_available == 'true'
+      continue-on-error: true
+      run: |
+        set +e  # Don't exit on errors to allow independent execution
+        echo "=========================================="
+        echo " Setonix Public Registry Push Process"
+        echo "=========================================="
+        
+        # Login to Setonix Registry
+        echo "🔐 Logging into Setonix Registry..."
+        if podman login https://setonix-registry.pawsey.org.au -u "${{ vars.SETONIXREG_USERNAME }}" -p "${{ secrets.SETONIXREG_PASS }}"; then
+          echo "✓ Setonix Registry login successful"
+        else
+          echo "✗ Setonix Registry login failed"
+          exit 1
+        fi
+        
+        # Tag and push to public channel
+        image_tag="${{ steps.locate_and_load.outputs.image_tag }}"
+        setonix_public_tag="setonix-registry.pawsey.org.au/pawsey/${DOCKERFILE_NAME}:${VERSION}"
+        
+        echo ""
+        echo "🏷️  Tagging image for Setonix Public Registry:"
+        echo "   Source: $image_tag"
+        echo "   Target: $setonix_public_tag"
+        
+        if podman tag "$image_tag" "$setonix_public_tag"; then
+          echo "✓ Image tagged successfully"
+        else
+          echo "✗ Image tagging failed"
+          exit 1
+        fi
+        
+        echo ""
+        echo "📤 Pushing to Setonix Public Registry..."
+        if podman push "$setonix_public_tag"; then
+          echo "✅ Successfully pushed to Setonix Public Registry: $setonix_public_tag"
+        else
+          echo "❌ Failed to push to Setonix Public Registry"
+          exit 1
+        fi
+
+    - name: Clean up podman images
+      if: always() && (needs.PREPARE-job.outputs.dockerhub_available == 'true' || needs.PREPARE-job.outputs.quayio_available == 'true' || needs.PREPARE-job.outputs.setonixreg_available == 'true')
       run: |
         echo "🧹 Cleaning up local images..."
         image_tag="${{ steps.locate_and_load.outputs.image_tag }}"
@@ -1018,6 +1065,13 @@ jobs:
           quayio_tag="quay.io/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
           echo "Removing Quay.io tag: $quayio_tag"
           podman rmi "$quayio_tag" 2>/dev/null || echo "  (Quay.io tag already removed or not found)"
+        fi
+        
+        # Remove Setonix Public Registry tagged image if it was created
+        if [ "${{ needs.PREPARE-job.outputs.setonixreg_available }}" = "true" ]; then
+          setonix_public_tag="setonix-registry.pawsey.org.au/pawsey/${DOCKERFILE_NAME}:${VERSION}"
+          echo "Removing Setonix Public tag: $setonix_public_tag"
+          podman rmi "$setonix_public_tag" 2>/dev/null || echo "  (Setonix Public tag already removed or not found)"
         fi
         
         echo "✅ Local image cleanup completed"
