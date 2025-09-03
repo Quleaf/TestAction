@@ -1,5 +1,5 @@
 name: 'Setup Rclone'
-description: 'Installs and configures rclone for S3 uploads/downloads without sudo, using $HOME/.cache/rclone for caching.'
+description: 'Installs and configures rclone for S3 uploads/downloads without sudo, using $HOME/.cache/rclone for caching. Optionally downloads archive from S3.'
 inputs:
   access_key_id:
     description: 'Access Key ID for S3'
@@ -16,10 +16,41 @@ inputs:
   destination_path:
     description: 'Destination path in the S3 bucket'
     required: true
+  # Download-specific inputs
+  download_mode:
+    description: 'Whether to download archive from S3 (true/false)'
+    required: false
+    default: 'false'
+  dockerfile_name:
+    description: 'Dockerfile name for download (e.g., ex1) - required when download_mode=true'
+    required: false
+  version:
+    description: 'Version for download (e.g., 0.0.5) - required when download_mode=true'
+    required: false
+  load_to_podman:
+    description: 'Whether to load the downloaded archive into podman'
+    required: false
+    default: 'false'
 outputs:
   rclone_installed:
     description: 'Indicates if rclone was installed in this run'
     value: ${{ steps.check_rclone.outputs.installed }}
+  # Download-specific outputs
+  archive_downloaded:
+    description: 'Indicates if archive was downloaded'
+    value: ${{ steps.download.outputs.downloaded }}
+  archive_name:
+    description: 'Downloaded archive filename'
+    value: ${{ steps.download.outputs.archive_name }}
+  archive_path:
+    description: 'Full local path to downloaded archive'
+    value: ${{ steps.download.outputs.archive_path }}
+  archive_source:
+    description: 'S3 source path of the archive'
+    value: ${{ steps.download.outputs.archive_source }}
+  image_tag:
+    description: 'Image tag if loaded to podman'
+    value: ${{ steps.load.outputs.image_tag }}
 runs:
   using: 'composite'
   steps:
@@ -93,3 +124,71 @@ runs:
         set -euo pipefail
         echo "Verifying rclone configuration..."
         ./rclone config show
+
+    - name: Download archive from S3
+      id: download
+      if: inputs.download_mode == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        # Validate required inputs for download mode
+        if [ -z "${{ inputs.dockerfile_name }}" ] || [ -z "${{ inputs.version }}" ]; then
+          echo "Error: dockerfile_name and version are required when download_mode=true"
+          exit 1
+        fi
+        
+        bucket="${{ inputs.bucket }}"
+        archive_file="${{ inputs.dockerfile_name }}_${{ inputs.version }}.tar"
+        
+        echo "Downloading archive from S3..."
+        echo "Bucket: $bucket"
+        echo "Archive: $archive_file"
+        
+        # Download from S3
+        if ./rclone copy pawsey0012:"$bucket/$archive_file" ./ --progress; then
+          if [ -f "./$archive_file" ]; then
+            file_size=$(ls -lh "./$archive_file" | awk '{print $5}')
+            echo "✓ Archive downloaded successfully from S3"
+            echo "  [SOURCE]: s3://$bucket/$archive_file"
+            echo "  [LOCAL]: ./$archive_file"
+            echo "  [SIZE]: $file_size"
+            
+            echo "downloaded=true" >> "$GITHUB_OUTPUT"
+            echo "archive_name=$archive_file" >> "$GITHUB_OUTPUT"
+            echo "archive_path=${PWD}/$archive_file" >> "$GITHUB_OUTPUT"
+            echo "archive_source=s3://$bucket/$archive_file" >> "$GITHUB_OUTPUT"
+          else
+            echo "✗ Archive download failed - file not found locally"
+            exit 1
+          fi
+        else
+          echo "✗ Failed to download archive from S3"
+          echo "  Tried: s3://$bucket/$archive_file"
+          echo "Available files in bucket:"
+          ./rclone lsf pawsey0012:"$bucket/" | head -10 || echo "  (Cannot list bucket contents)"
+          exit 1
+        fi
+
+    - name: Load archive into podman
+      id: load
+      if: inputs.download_mode == 'true' && inputs.load_to_podman == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        archive_file="${{ steps.download.outputs.archive_name }}"
+        dockerfile_name="${{ inputs.dockerfile_name }}"
+        version="${{ inputs.version }}"
+        
+        echo "Loading image from archive: $archive_file"
+        podman load -i "$archive_file"
+        
+        # Verify image was loaded
+        if podman images | grep -q "${dockerfile_name}"; then
+          echo "✓ Image loaded successfully: ${dockerfile_name}:${version}"
+          podman images | grep "${dockerfile_name}"
+          echo "image_tag=${dockerfile_name}:${version}" >> "$GITHUB_OUTPUT"
+        else
+          echo "✗ Failed to load image: ${dockerfile_name}:${version}"
+          exit 1
+        fi
