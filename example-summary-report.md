@@ -8,7 +8,8 @@
 
 | Location | Address | Status |
 |----------|---------|--------|
-| S3 Object Storage | `s3://your-bucket/ex2_0.0.6.tar` | ✅ Uploaded |
+| S3 Docker Archive | `s3://pawsey0012:docker-bucket/ex2_0.0.6.tar` | ✅ Uploaded |
+| S3 Singularity SIF | `s3://pawsey0012:sif-bucket/ex2_0.0.6.sif` | ✅ Uploaded |
 
 ## 🏗️ Container Registry Deployments
 
@@ -19,7 +20,22 @@
 | Docker Hub | `docker.io/username/ex2:0.0.6` | ✅ Pushed |
 | Quay.io | `quay.io/username/ex2:0.0.6` | ✅ Pushed |
 
-## 🔧 Pull Commands
+## 🔧 Container Usage Commands
+
+### Singularity Usage
+
+Download and use the SIF file directly:
+```bash
+# Download SIF file from S3 (requires rclone configuration)
+rclone copy pawsey0012:sif-bucket/ex2_0.0.6.sif ./
+
+# Run with Singularity
+singularity exec ex2_0.0.6.sif <command>
+# or
+singularity run ex2_0.0.6.sif
+```
+
+### Container Engine Pull Commands
 
 Use the following commands to pull the container image:
 
