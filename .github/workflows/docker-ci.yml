@@ -29,6 +29,7 @@ jobs:
       date: ${{ steps.date.outputs.date }}
       dockerhub_available: ${{ steps.check_vars_secrets.outputs.dockerhub_available }}
       quayio_available: ${{ steps.check_vars_secrets.outputs.quayio_available }}
+      setonixreg_available: ${{ steps.check_vars_secrets.outputs.setonixreg_available }}
     
     steps:
       - name: Set default runner label
@@ -51,6 +52,10 @@ jobs:
             missing_vars+=("QUAYIO_USERNAME")
           fi
 
+          if [ -z "${{ vars.SETONIXREG_USERNAME }}" ]; then
+            missing_vars+=("SETONIXREG_USERNAME")
+          fi
+
           if [ -z "${{ vars.ACACIA_BUCKETNAME }}" ]; then
             missing_vars+=("ACACIA_BUCKETNAME")
           fi
@@ -66,6 +71,10 @@ jobs:
 
           if [ -z "${{ secrets.QUAYIO_TOKEN }}" ]; then
             missing_secrets+=("QUAYIO_TOKEN")
+          fi
+
+          if [ -z "${{ secrets.SETONIXREG_PASS }}" ]; then
+            missing_secrets+=("SETONIXREG_PASS")
           fi
 
           if [ -z "${{ secrets.ACACIA_ACCESS_KEY_ID }}" ]; then
@@ -92,6 +101,7 @@ jobs:
           # Set output flags for conditional job execution
           echo "dockerhub_available=$( [ -n "${{ vars.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
           echo "quayio_available=$( [ -n "${{ vars.QUAYIO_USERNAME }}" ] && [ -n "${{ secrets.QUAYIO_TOKEN }}" ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
+          echo "setonixreg_available=$( [ -n "${{ vars.SETONIXREG_USERNAME }}" ] && [ -n "${{ secrets.SETONIXREG_PASS }}" ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -815,6 +825,65 @@ jobs:
         echo "  [DESTINATION]: $archive_file"
         echo "  [SIZE]: $(ls -lh "$archive_file" | awk '{print $5}')"
 
+    - name: "[Setonix Registry] Login and Push"
+      if: needs.PREPARE-job.outputs.setonixreg_available == 'true'
+      continue-on-error: true
+      run: |
+        set +e  # Don't exit on errors to allow independent execution
+        echo "=========================================="
+        echo " Setonix Registry Push Process"
+        echo "=========================================="
+        
+        # Load image from archive first
+        echo "📦 Loading image from archive..."
+        archive_file="${{ steps.locate_archive.outputs.archive_file }}"
+        if podman load -i "$archive_file"; then
+          echo "✓ Image loaded successfully from archive"
+        else
+          echo "✗ Failed to load image from archive"
+          exit 1
+        fi
+        
+        # Login to Setonix Registry
+        echo "🔐 Logging into Setonix Registry..."
+        if podman login https://setonix-registry.pawsey.org.au -u "${{ vars.SETONIXREG_USERNAME }}" -p "${{ secrets.SETONIXREG_PASS }}"; then
+          echo "✓ Setonix Registry login successful"
+        else
+          echo "✗ Setonix Registry login failed"
+          exit 1
+        fi
+        
+        # Tag and push
+        image_tag="${DOCKERFILE_NAME}:${VERSION}"
+        setonix_tag="setonix-registry.pawsey.org.au/${{ vars.SETONIXREG_USERNAME }}/${DOCKERFILE_NAME}:${VERSION}"
+        
+        echo ""
+        echo "🏷️  Tagging image for Setonix Registry:"
+        echo "   Source: $image_tag"
+        echo "   Target: $setonix_tag"
+        
+        if podman tag "$image_tag" "$setonix_tag"; then
+          echo "✓ Image tagged successfully"
+        else
+          echo "✗ Image tagging failed"
+          exit 1
+        fi
+        
+        echo ""
+        echo "📤 Pushing to Setonix Registry..."
+        if podman push "$setonix_tag"; then
+          echo "✅ Successfully pushed to Setonix Registry: $setonix_tag"
+        else
+          echo "❌ Failed to push to Setonix Registry"
+          exit 1
+        fi
+        
+        # Cleanup local tagged image
+        echo ""
+        echo "🧹 Cleaning up local Setonix tagged image..."
+        podman rmi "$setonix_tag" 2>/dev/null || echo "  (Setonix tag already removed or not found)"
+        podman rmi "$image_tag" 2>/dev/null || echo "  (Base image already removed or not found)"
+
   PUSH-PUBLIC-job:
     needs: [BUILD-job, PREPARE-job, PUSH-PRIV-job]
     runs-on: setonix-podman02
@@ -846,6 +915,13 @@ jobs:
           echo "[skip]  Quay.io: Skipping (missing QUAYIO_USERNAME or QUAYIO_TOKEN)"
         fi
         
+        # Check Setonix Registry credentials  
+        if [ "${{ needs.PREPARE-job.outputs.setonixreg_available }}" = "true" ]; then
+          echo "[✓] Setonix Registry: Credentials available - already pushed to setonix-registry.pawsey.org.au/${{ vars.SETONIXREG_USERNAME }}/${DOCKERFILE_NAME}:${VERSION} in PUSH-PRIV-job"
+        else
+          echo "[skip]  Setonix Registry: Skipping (missing SETONIXREG_USERNAME or SETONIXREG_PASS)"
+        fi
+        
         # Check if any registry is available
         if [ "${{ needs.PREPARE-job.outputs.dockerhub_available }}" != "true" ] && [ "${{ needs.PREPARE-job.outputs.quayio_available }}" != "true" ]; then
           echo ""
@@ -853,6 +929,7 @@ jobs:
           echo "   To enable public registry pushes, configure the required variables and secrets:"
           echo "   - Docker Hub: DOCKERHUB_USERNAME (variable) + DOCKERHUB_TOKEN (secret)"
           echo "   - Quay.io: QUAYIO_USERNAME (variable) + QUAYIO_TOKEN (secret)"
+          echo "   - Setonix Registry: SETONIXREG_USERNAME (variable) + SETONIXREG_PASS (secret)"
         fi
         echo ""
 
@@ -1093,122 +1170,3 @@ jobs:
           
   #           singularity build --force $MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}.sif docker-archive://$MYSCRATCH/image/${{ needs.PREPARE-job.outputs.dockerfile_name }}/image.tar
   
-  # APPROVE-PUSH-PUB-job:
-  #   needs: [BUILD-job, PREPARE-job]
-  #   runs-on: ${{ needs.PREPARE-job.outputs.runner_label }}
-  #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-  #   environment:
-  #     name: manual_approval  
-  #   steps:
-  #     - name: Print hostname and set approved label for deployment
-  #       id: set_approved_label
-  #       run: |
-  #         echo "Hostname: $(hostname)"
-  #     - name: Copy back persistent storage "$HOME/runner/artifacts" to current directory in case of running before scan
-  #       run: |
-  #         if [ -f "$HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar" ]; then
-  #           echo "File already exists, skipping copy."
-  #         else
-  #           cp $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
-  #           echo "Copied image.tar from $HOME/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
-  #         fi
-
-  #     - name: Login to quay Container Registry
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: quay.io
-  #         username: ${{ vars.QUAYIO_USERNAME }}
-  #         password: ${{ secrets.QUAYIO_TOKEN }}
-      
-  #     - name: Load Docker image from image.tar
-  #       run: |
-  #           docker load -i ${GITHUB_WORKSPACE}/image.tar
-
-  #     - name: Tag Docker image for Dockerhub and Quay.IO
-  #       run: |
-  #         docker tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-  #         docker tag ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
-  #     - name: Push Docker image to Quay.IO after approval
-  #       if: needs.PREPARE-job.outputs.devmode != 'true'
-  #       run: |          
-  #         docker push quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-  #         docker push quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
-  #     - name: Remove Docker images
-  #       run: |
-  #         # Remove the main image
-  #         docker rmi ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true
-        
-  #           # Remove tagged images
-  #         docker rmi quay.io/${{ vars.QUAYIO_USERNAME }}/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true 
-  #         docker rmi quay.io/pawsey/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} || true       
-         
-
-
-
-
-  # APPROVE-AND-DEPLOY-job:
-  #   needs: [SCAN-AND-REPORT-job, PREPARE-job]
-  #   runs-on: experiment
-  #   if: needs.PREPARE-job.outputs.proceed_valid == 'true'
-  #   strategy:
-  #     matrix:
-  #       task: [push-dockerhub, push-quay, upload-s3]
-  #   env:
-  #     BUCKET: pawsey0001-image-compilation
-  #     DESTINATION_PATH: ${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}
-  #   environment:
-  #     name: manual_approval  
-  #   steps:
-  #     - name: Copy back persistent storage "/home/runner/artifacts" to current directory
-  #       run: |
-  #         cp /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar ${GITHUB_WORKSPACE}
-  #         echo "Copied image.tar from /home/runner/artifacts/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}/image.tar to ${GITHUB_WORKSPACE}"
-      
-  #     - name: Load Docker image from image.tar and tag for dockerhub and quay.io
-  #       run: |
-  #         docker load -i ${GITHUB_WORKSPACE}/image.tar
-  #         docker tag klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }} quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
-  #     - name: Login to Docker Hub
-  #       if: matrix.task == 'push-dockerhub'
-  #       uses: docker/login-action@v3
-  #       with:
-  #         username: ${{ vars.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}        
-
-  #     - name: Push Docker image to DockerHub
-  #       if: matrix.task == 'push-dockerhub'
-  #       run: |
-  #         docker push klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-      
-  #     - name: Login to Quay Container Registry
-  #       if: matrix.task == 'push-quay'
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: quay.io
-  #         username: ${{ vars.QUAYIO_USERNAME }}
-  #         password: ${{ secrets.QUAYIO_TOKEN }}
-
-  #     - name: Push Docker image to Quay.IO after approval
-  #       if: matrix.task == 'push-quay'
-  #       run: |
-  #         docker push quay.io/klinus/${{ needs.PREPARE-job.outputs.dockerfile_name }}-${{ needs.PREPARE-job.outputs.platform_tag }}:${{ needs.PREPARE-job.outputs.date }}
-
-  #     # Steps for uploading to S3 with rclone
-  #     - name: Setup rclone
-  #       if: matrix.task == 'upload-s3'
-  #       uses: ./.github/actions/setup-rclone
-  #       with:
-  #         access_key_id: ${{ secrets.ACACIA_ACCESS_KEY_ID }}
-  #         secret_access_key: ${{ secrets.ACACIA_SECRET_ACCESS_KEY }}
-  #         endpoint: https://projects.pawsey.org.au
-  #         bucket: ${{ env.BUCKET }}
-  #         destination_path: ${{ env.DESTINATION_PATH }}
-      
-  #     - name: Upload image tar to S3 with rclone
-  #       if: matrix.task == 'upload-s3'
-  #       run: |
-  #         set -e
-  #         rclone copy ${{ github.workspace }}/image.tar pawsey0001:"${{ env.BUCKET }}/${{ env.DESTINATION_PATH }}/"
