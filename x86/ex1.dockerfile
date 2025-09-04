@@ -3,7 +3,7 @@
 #FROM ubuntu:20.04
 FROM ubuntu:16.04
 
-LABEL org.opencontainers.image.version=0.0.9
+LABEL org.opencontainers.image.version=0.0.10
 LABEL org.opencontainers.image.devmode=true
 
 # # Install curl packageW
