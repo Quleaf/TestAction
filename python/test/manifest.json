@@ -1,0 +1,39 @@
+{
+  "main": "python",
+  "feature": "test",
+  "version": "1.2.3",
+  "devmode": true,
+  "noscan": false,
+  "platform": "arm",
+  "targets": [
+    "dockerhub",
+    "quay.io"
+  ],
+  "labels": {
+    "org.opencontainers.image.version": "1.2.3",
+    "org.opencontainers.image.devmode": "true",
+    "org.opencontainers.image.noscan": "false",
+    "org.opencontainers.image.platform": "arm"
+  },
+  "github": {
+    "repo": "Quleaf/TestAction",
+    "branch": "cicd-python-test",
+    "path": "python/test/"
+  },
+  "metadata": {
+    "timestamp": "2025-09-04T23:25:06.329217Z",
+    "correlation_id": "3d56c9fe-7513-4e01-af08-442a4d6285c0",
+    "ui_input": {
+      "main": "python",
+      "feature": "test",
+      "version": "1.2.3",
+      "devmode": true,
+      "noscan": false,
+      "platform": "arm",
+      "targets": [
+        "dockerhub",
+        "quay.io"
+      ]
+    }
+  }
+}
