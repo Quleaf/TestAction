@@ -1204,18 +1204,26 @@ jobs:
             echo "Warning: SHPC registry may not be properly configured"
           fi
           
-          # Switch to spack user to write to registry (spack user has write permissions)
+          # Write container YAML to temporary file
+          temp_file="/tmp/container_${RANDOM}.yaml"
+          echo "$container_yaml" > "$temp_file"
+          echo "Container YAML written to temporary file: $temp_file"
+          
+          # Switch to spack user to create registry entry
           echo "Switching to spack user to write to registry..."
-          sudo su - spack -c "
-            set -euo pipefail
-            mkdir -p '$shpc_path'
-            cat > '$shpc_path/container.yaml' <<'EOF'
-          $container_yaml
+          sudo su - spack << EOF
+          set -euo pipefail
+          echo "Now running as spack user"
+          mkdir -p '$shpc_path'
+          cp '$temp_file' '$shpc_path/container.yaml'
+          echo '✓ SHPC registry entry created successfully'
+          ls -la '$shpc_path/'
+          cat '$shpc_path/container.yaml'
           EOF
-            echo '✓ SHPC registry entry created successfully'
-            ls -la '$shpc_path/'
-            cat '$shpc_path/container.yaml'
-          "
+          
+          # Clean up temporary file
+          rm -f "$temp_file"
+          echo "Temporary file cleaned up"
           
           echo "✅ SHPC deployment completed"
           echo "Registry path: $shpc_path"
