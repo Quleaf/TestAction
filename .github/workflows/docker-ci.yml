@@ -992,6 +992,20 @@ jobs:
         echo "📤 Pushing to Quay.io..."
         if podman push "$quayio_tag"; then
           echo "✅ Successfully pushed to Quay.io: $quayio_tag"
+          
+          # Ensure repository is set to public for SHPC deployment
+          echo "Setting repository visibility to public..."
+          visibility_response=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.QUAYIO_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"visibility": "public"}' \
+            "https://quay.io/api/v1/repository/${{ vars.QUAYIO_USERNAME }}/${DOCKERFILE_NAME}/changevisibility")
+          
+          if echo "$visibility_response" | jq -e '.success' > /dev/null 2>&1; then
+            echo "✓ Repository visibility set to public"
+          else
+            echo "ℹ️  Repository visibility API call completed (may already be public)"
+          fi
         else
           echo "❌ Failed to push to Quay.io"
           exit 1
