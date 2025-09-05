@@ -1,0 +1,22 @@
+{
+  "main": "ex1",
+  "feature": "test",
+  "version": "0.0.2",
+  "devmode": false,
+  "noscan": false,
+  "platform": "x86",
+  "targets": [
+    "dockerhub",
+    "quay.io",
+    "setonix-registry"
+  ],
+  "github": {
+    "repo": "Quleaf/TestAction",
+    "branch": "cicd-ex1/test",
+    "path": "ex1/test/"
+  },
+  "metadata": {
+    "timestamp": "2025-09-05T03:39:17.057594Z",
+    "correlation_id": "df84b1a7-4594-4dc3-b3b9-24f003fa3283"
+  }
+}
