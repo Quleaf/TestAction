@@ -1,0 +1,20 @@
+{
+  "main": "python",
+  "feature": "test",
+  "version": "1.0.0",
+  "devmode": false,
+  "noscan": false,
+  "platform": "x86",
+  "targets": [
+    "dockerhub"
+  ],
+  "github": {
+    "repo": "Quleaf/TestAction",
+    "branch": "cicd-python/test",
+    "path": "python/test/"
+  },
+  "metadata": {
+    "timestamp": "2025-09-05T03:28:34.612880Z",
+    "correlation_id": "7afc3083-41ba-4a51-a970-a10726972d2b"
+  }
+}
